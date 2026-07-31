@@ -1,0 +1,20 @@
+# Obsidian의 PC별 화면 상태
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+
+# Obsidian 휴지통
+.trash/
+
+# 운영체제 파일
+.DS_Store
+Thumbs.db
+
+# 민감정보 및 인증키
+.env
+*.key
+*.pem
+*.ppk
+
+# 임시 파일
+*.tmp
+*.log
