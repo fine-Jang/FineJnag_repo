@@ -1,0 +1,68 @@
+filters:
+  and:
+    - 'file.ext == "md"'
+    - '!file.inFolder("80_Templates")'
+    - 'file.path != "README.md"'
+formulas:
+  note_link: 'file.asLink(file.name)'
+properties:
+  formula.note_link:
+    displayName: 게시글
+  file.folder:
+    displayName: 폴더 분류
+  type:
+    displayName: 유형
+  category:
+    displayName: 카테고리
+  status:
+    displayName: 상태
+  file.mtime:
+    displayName: 수정 시각
+views:
+  - type: table
+    name: 전체 게시글
+    order:
+      - formula.note_link
+      - file.folder
+      - type
+      - category
+      - status
+      - file.mtime
+  - type: table
+    name: 프로젝트
+    filters:
+      and:
+        - 'file.inFolder("20_Projects")'
+    order:
+      - formula.note_link
+      - status
+      - category
+      - file.mtime
+  - type: table
+    name: 스터디
+    filters:
+      and:
+        - 'file.inFolder("30_Study")'
+    order:
+      - formula.note_link
+      - category
+      - status
+      - file.mtime
+  - type: table
+    name: 일일 기록
+    filters:
+      and:
+        - 'file.inFolder("40_Daily")'
+    order:
+      - formula.note_link
+      - file.folder
+      - file.mtime
+  - type: table
+    name: 참고 자료
+    filters:
+      and:
+        - 'file.inFolder("50_Resources")'
+    order:
+      - formula.note_link
+      - category
+      - file.mtime
