@@ -1,10 +1,10 @@
 filters:
   and:
-    - 'file.ext == "md"'
+    - file.ext == "md"
     - '!file.inFolder("80_Templates")'
-    - 'file.path != "README.md"'
+    - file.path != "README.md"
 formulas:
-  note_link: 'file.asLink(file.name)'
+  note_link: file.asLink(file.name)
 properties:
   formula.note_link:
     displayName: 게시글
@@ -28,11 +28,14 @@ views:
       - category
       - status
       - file.mtime
+    columnSize:
+      formula.note_link: 210
+      file.folder: 279
   - type: table
     name: 프로젝트
     filters:
       and:
-        - 'file.inFolder("20_Projects")'
+        - file.inFolder("20_Projects")
     order:
       - formula.note_link
       - status
@@ -42,7 +45,7 @@ views:
     name: 스터디
     filters:
       and:
-        - 'file.inFolder("30_Study")'
+        - file.inFolder("30_Study")
     order:
       - formula.note_link
       - category
@@ -52,7 +55,7 @@ views:
     name: 일일 기록
     filters:
       and:
-        - 'file.inFolder("40_Daily")'
+        - file.inFolder("40_Daily")
     order:
       - formula.note_link
       - file.folder
@@ -61,7 +64,7 @@ views:
     name: 참고 자료
     filters:
       and:
-        - 'file.inFolder("50_Resources")'
+        - file.inFolder("50_Resources")
     order:
       - formula.note_link
       - category

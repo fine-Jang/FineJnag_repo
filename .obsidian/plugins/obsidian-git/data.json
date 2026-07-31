@@ -1,0 +1,7 @@
+{
+    "differentIntervalCommitAndPush":  true,
+    "autoSaveInterval":  30,
+    "autoPushInterval":  60,
+    "autoBackupAfterFileChange":  false,
+    "pullBeforePush":  true
+}
