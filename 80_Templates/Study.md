@@ -6,7 +6,7 @@ project: []
 tags:
   - study
 ---
-ㅣ
+
 # 학습 주제
 
 ## 학습 목표
