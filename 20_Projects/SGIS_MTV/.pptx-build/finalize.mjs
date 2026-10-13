@@ -1,0 +1,10 @@
+import fs from 'node:fs/promises';
+import {pathToFileURL} from 'node:url';
+const root=process.cwd();
+const runtime='C:/Users/홍종규/.cache/codex-runtimes/codex-primary-runtime/dependencies';
+const skill='C:/Users/홍종규/.codex/plugins/cache/openai-primary-runtime/presentations/26.1007.11041/skills/presentations';
+process.env.RUNTIME_NODE_MODULES=runtime+'/node/node_modules';
+const {finalizePresentation}=await import(pathToFileURL(skill+'/container_tools/artifact_tool_utils.mjs'));
+const owners=JSON.parse(await fs.readFile(root+'/20_Projects/SGIS_MTV/.pptx-build/table-owners.json','utf8'));
+await fs.mkdir(root+'/20_Projects/SGIS_MTV/output',{recursive:true});
+console.log(await finalizePresentation({workspaceDir:root,candidatePath:root+'/20_Projects/SGIS_MTV/.pptx-build/candidate.pptx',finalPath:root+'/20_Projects/SGIS_MTV/output/국데처MTV_작업계획서_V4.pptx',pythonExecutable:runtime+'/python/python.exe',integrityValidatorPath:skill+'/container_tools/inspect_presentation_package_integrity.py',layoutValidatorPath:skill+'/container_tools/inspect_presentation_layout_geometry.py',layoutArgs:['--expected-slide-size-emu','15240000,8572500','--validate-bullet-geometry','--validate-heading-fit',...owners.flatMap(n=>['--require-native-table-slide',String(n)])],requiredNativeTableOwnerSlides:owners,fontPolicy:{basis:'design',families:['Malgun Gothic']},verifyArtifactToolImport:true,receiptPath:root+'/20_Projects/SGIS_MTV/.pptx-build/final.validation.json'}));
