@@ -1,0 +1,547 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>국가데이터처 SGIS 설계 및 MTV 작업계획서</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+/* SGIS OpenShift 구축설계서 — 단일 스타일시트 (작업계획서 v2.8 스타일 기반)
+   색 역할: 남색 = 기본·구조 / 파랑 = 재활용 TNS-2100 / 빨강 = IP 할당 필요(전용) / 주황 = Worker2 MTV 완료 후 전환 */
+:root{
+  --font:"Pretendard","Noto Sans KR","Malgun Gothic","Apple SD Gothic Neo",sans-serif;
+  --ink:#1f2a3a;--ink-2:#334155;--muted:#475569;--line:#d5dce6;--line-2:#b9c4d3;
+  --paper:#eef1f5;--surface:#fff;--soft:#f5f7fa;
+  --navy:#1e3a5f;--navy-2:#2f4f7a;--navy-soft:#e6ecf4;
+  --new:#1d5bb5;--new-soft:#e3eeff;
+  --ip:#c62828;
+  --late:#b45309;--late-ink:#7c2d12;--late-soft:#fff3df;
+  --svc:#2f6fb5;--mgmt:#6d5aa6;--bk:#b0752f;
+  --note:#9a6a2a;--note-soft:#fbf4e6;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.7 var(--font);word-break:keep-all;-webkit-font-smoothing:antialiased}
+main{max-width:1380px;margin:auto;padding:32px 36px 72px}
+a{color:var(--new)}
+p{margin:10px 0}
+li{margin:6px 0}
+b,strong{font-weight:700}
+code{font-family:var(--font);background:var(--navy-soft);color:var(--navy);padding:1px 6px;border-radius:3px;font-size:.95em}
+.muted{color:var(--muted);font-size:14.5px}
+small{color:var(--muted);font-size:13px}
+
+/* 상단 */
+.toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}
+.tag{font-size:12.5px;font-weight:700;letter-spacing:1px;color:var(--navy);border:1.5px solid var(--line-2);padding:5px 12px}
+button{font:inherit;font-size:14px;border:1.5px solid var(--line-2);background:var(--surface);color:var(--navy);padding:7px 16px;cursor:pointer}
+button:hover{background:var(--navy-soft)}
+header{position:relative;background:var(--surface);border-top:7px solid var(--navy);border-bottom:1px solid var(--line-2);padding:36px 40px}
+
+.eyebrow{color:var(--navy-2);font-size:12px;font-weight:600;letter-spacing:2.5px;max-width:70%}
+h1{font-size:33px;font-weight:800;letter-spacing:-.5px;line-height:1.45;margin:14px 0;color:var(--navy)}
+header p{color:var(--ink-2);font-size:15.5px;margin:6px 0}
+nav{display:flex;flex-wrap:wrap;gap:8px 26px;padding:16px 2px;border-bottom:1px solid var(--line-2)}
+nav a{color:var(--navy-2);font-size:14.5px;font-weight:600;text-decoration:none}
+nav a:hover{color:var(--new);text-decoration:underline}
+
+/* 본문 블록 */
+section{background:var(--surface);border-top:3px solid var(--navy-2);padding:32px 36px;margin-top:28px;scroll-margin-top:16px}
+h2{font-size:24px;font-weight:800;color:var(--navy);letter-spacing:-.3px;margin:0 0 20px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+h3{font-size:18.5px;font-weight:700;color:var(--ink);margin:32px 0 12px;padding-left:10px;border-left:4px solid var(--navy-2);line-height:1.4}
+.note{border-left:4px solid var(--note);background:var(--note-soft);color:var(--ink);font-size:15.5px;padding:14px 18px;margin:18px 0}
+
+/* 요약 카드 */
+.cards{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);margin:22px 0}
+.card{padding:18px 22px;background:var(--soft);border-right:1px solid var(--line);font-size:14.5px;color:var(--ink-2)}
+.card:last-child{border-right:0}
+.card b{display:block;font-size:30px;font-weight:800;color:var(--navy);margin:4px 0}
+.card:nth-child(3){background:var(--new-soft);box-shadow:inset 0 4px 0 var(--new)}
+.card:nth-child(3) b{color:var(--new)}
+
+/* 표 */
+.tablewrap,.figure{overflow-x:auto}
+.tablewrap{border-bottom:1px solid var(--line)}
+table{width:100%;border-collapse:collapse;font-size:14.5px;line-height:1.7}
+th,td{padding:12px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}
+th{background:var(--navy-soft);color:var(--navy);font-weight:700;white-space:nowrap;border-top:2px solid var(--navy-2);border-bottom:1px solid var(--line-2)}
+tbody tr:nth-child(even){background:var(--soft)}
+tr:last-child td{border-bottom:0}
+td:first-child{color:var(--ink);font-weight:600}
+td small{display:inline-block;margin-top:2px;font-weight:600;color:var(--navy-2)}
+.risk td:first-child{white-space:nowrap}
+tr.row-new td{background:var(--new-soft)}
+tr.row-new td:first-child{box-shadow:inset 5px 0 0 var(--new)}
+
+/* 배지 */
+.badge-new,.badge-old,.badge-late,.badge-ip{display:inline-block;font-size:13px;font-weight:700;line-height:1.5;padding:1px 9px;border-radius:3px;white-space:nowrap;margin-right:5px}
+.badge-new{background:var(--new);border:1.5px solid var(--new);color:#fff}
+.badge-old{background:#fff;border:1.5px solid #8a99ad;color:var(--ink-2)}
+.badge-late{background:var(--late-soft);border:1.5px solid var(--late);color:var(--late-ink)}
+.badge-ip{background:var(--ip);border:1.5px solid var(--ip);color:#fff}
+
+/* 범례 */
+.legend{display:flex;flex-wrap:wrap;gap:10px 24px;align-items:center;padding:12px 16px;background:var(--soft);border:1px solid var(--line);color:var(--ink-2);font-size:14px}
+.legend i{display:inline-block;width:24px;height:4px;vertical-align:middle;margin-right:8px}
+.legend .old-key{width:24px;height:15px;background:#fff;border:1.5px solid #8a99ad}
+.legend .new-key{width:24px;height:15px;background:var(--new-soft);border:2.5px dashed var(--new)}
+.legend i.ip-key{width:auto;height:auto;font-style:normal;line-height:20px;padding:0 8px;background:var(--ip);color:#fff;font-weight:700;font-size:12.5px;border-radius:3px}
+
+/* 구성도 SVG */
+.figure{border:1px solid var(--line);background:#f8fafc;padding:10px}
+.figure svg{width:100%;min-width:1000px;height:auto;display:block;background:#f8fafc}
+svg text{font-family:var(--font);fill:var(--ink);font-size:15px}
+svg .small{font-size:13px;fill:var(--ink-2)}
+svg .bold{font-size:17.5px;font-weight:800;fill:var(--ink)}
+svg .stitle{font-size:18px;font-weight:800}
+svg .phase-title{fill:#fff;font-size:18px;font-weight:800}
+.panel{fill:#fff;stroke:#c8d2df}
+.panel-asis{stroke:#64748b;stroke-width:2.5}.panel-tobe{stroke:var(--navy-2);stroke-width:2.5}
+.heading-asis{fill:#64748b}.heading-tobe{fill:var(--navy-2)}
+.server{fill:#fff;stroke:#8a99ad;stroke-width:1.5}
+.pool{fill:#eef2f7;stroke:#9fb0c6}
+.vm{fill:#e7edf5;stroke:#8aa0bd}
+.wire{fill:none;stroke-width:1.8}.bus{fill:none;stroke-width:3}
+.svc{stroke:var(--svc)}.mgmt{stroke:var(--mgmt)}.bk{stroke:var(--bk)}
+.new-server{fill:var(--new-soft);stroke:var(--new);stroke-width:3;stroke-dasharray:8 4}
+.new-tag{fill:var(--new)}
+svg .tag-label{fill:#fff;font-size:13px;font-weight:700}
+svg .new-text{fill:var(--new);font-weight:700}
+.ip-badge{fill:var(--ip)}
+svg .ip-label{fill:#fff;font-size:13px;font-weight:700}
+.late-server{fill:var(--late-soft);stroke:var(--late);stroke-width:3}
+.late-badge{fill:var(--late)}
+svg .late-label{fill:#fff;font-size:13px;font-weight:700}
+.worker-late .vm{fill:#ffe7c2;stroke:#c98a3a}
+.worker-late .bold{fill:var(--late-ink)}
+.worker-late .small{fill:#6b3a12}
+/* 상세 구성도 */
+.ipmi{stroke:#64748b;stroke-dasharray:6 4}
+.fc{stroke:#0f766e}
+.bus.ipmi{stroke-width:2.2}
+.dot{fill:#334155}
+svg .lbl{paint-order:stroke;stroke:#fff;stroke-width:5px;stroke-linejoin:round}
+.svcbox{fill:#f5f7fa;stroke:#c8d2df}
+.box{fill:#fff;stroke:#8a99ad;stroke-width:1.5}
+.box-svc{fill:#eaf2fb;stroke:var(--svc);stroke-width:1.8}
+.box-bk{fill:#fbf2e7;stroke:var(--bk);stroke-width:1.8}
+.box-mgmt{fill:#f1eef9;stroke:var(--mgmt);stroke-width:1.8}
+.box-off{fill:#f1f5f9;stroke:#94a3b8;stroke-width:1.5;stroke-dasharray:6 4}
+.box-tbd{fill:#fff8e6;stroke:#c99a2e;stroke-width:1.8;stroke-dasharray:7 4}
+.box-st{fill:#e9f5f2;stroke:#0f766e;stroke-width:2}
+.arrow{fill:none;stroke:#475569;stroke-width:1.8}
+.arrow-tbd{fill:none;stroke:#c99a2e;stroke-width:1.8;stroke-dasharray:6 4}
+.legend i.ipmi-key{height:0;background:none;border-top:3px dashed #64748b}
+.legend .tbd-key{width:24px;height:15px;background:#fff8e6;border:1.5px dashed #c99a2e}
+
+/* 장비 재구성 매핑 행 (v1.1 — 곡선 화살표 구성도 대체) */
+.remap{display:flex;flex-direction:column;gap:14px;margin:20px 0}
+.remap-row{display:grid;grid-template-columns:40px minmax(0,1fr) 112px minmax(0,1fr);gap:0 16px;align-items:center}
+.remap-step{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:#fff;background:var(--navy-2);justify-self:center}
+.remap-step.s-new{background:#fff;border:2px solid var(--new);color:var(--new)}
+.remap-step.s-chg{background:#be185d}
+.remap-step.s-late{background:var(--late)}
+.remap-box{border:1.5px solid var(--line-2);border-radius:8px;padding:14px 16px;background:#fff;min-height:92px}
+.remap-box .ttl{font-size:16px;font-weight:800;color:var(--ink);margin-bottom:2px}
+.remap-box .sub{font-size:13.5px;color:var(--ink-2)}
+.remap-box .meta{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.65}
+.remap-box.is-empty{display:flex;align-items:center;justify-content:center;border-style:dashed;background:var(--soft);color:var(--muted);font-size:13.5px}
+.remap-box.is-new{background:var(--new-soft);border:2px dashed var(--new)}
+.remap-box.is-worker{background:var(--soft)}
+.remap-box.is-late{background:var(--late-soft);border:2px solid var(--late)}
+.remap-box .chip{display:inline-block;margin-top:8px;font-size:12px;font-weight:700;padding:2px 8px;border-radius:3px;background:#e8f6ee;color:#166534;border:1px solid #86cfa8}
+.remap-arrow{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.remap-arrow .glyph{font-size:24px;line-height:1;font-weight:700}
+.remap-arrow .lbl{font-size:12px;font-weight:700;white-space:nowrap}
+.remap-arrow.a-chg .glyph,.remap-arrow.a-chg .lbl{color:#be185d}
+.remap-arrow.a-late .glyph,.remap-arrow.a-late .lbl{color:var(--late)}
+.remap-arrow.a-new .glyph,.remap-arrow.a-new .lbl{color:var(--new)}
+.remap-head{margin-bottom:-4px}
+.remap-colhead{font-size:13.5px;font-weight:800;letter-spacing:1px;text-align:center;padding:7px 12px;border-radius:6px}
+.ch-asis{background:#e2e8f0;color:#475569}.ch-tobe{background:var(--navy-2);color:#fff}
+.remap-box .spec{font-size:13px;color:var(--muted);margin-top:2px}
+.remap-net-title{font-size:12.5px;font-weight:700;color:var(--muted);margin:26px 0 8px;letter-spacing:.5px}
+
+/* 설계 항목 상태 · 그림 설명 · 확인 필요 목록 (v1.3) */
+.st{display:inline-block;font-size:12px;font-weight:700;padding:1px 8px;border-radius:3px;white-space:nowrap}
+.st-ok{background:#e8f6ee;color:#166534;border:1px solid #86cfa8}.st-dec{background:#fff3df;color:#7c2d12;border:1px solid #e0a35a}.st-chk{background:#fff8e6;color:#7a5a14;border:1px dashed #c99a2e}
+.fignote{margin:10px 0 0;padding-left:20px;font-size:14.5px;color:var(--ink-2)}
+.checks{list-style:none;padding:0;margin:8px 0}.checks li{padding:5px 0;border-bottom:1px solid var(--line);font-size:14.5px}.checks .st{margin-right:10px}
+
+/* IP 할당 상세 */
+.ip-need{margin-top:8px;border-left:3px solid var(--ip);background:#fff5f5;padding:6px 10px;border-radius:0 4px 4px 0}
+
+/* Master KVM 호스트 안의 VM 표시 */
+.kvm{margin-top:10px;border:1.2px dashed #7d93b2;border-radius:6px;background:#f5f8fc;padding:8px 10px}
+.kvm-head{font-size:12.5px;font-weight:700;color:var(--navy-2);margin-bottom:6px}
+.kvm-vms{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.kvm-vm{display:flex;flex-direction:column;align-items:center;gap:3px;background:#fff;border:2px solid var(--navy-2);border-radius:6px;padding:8px 6px;text-align:center}
+.kvm-vm .vm-mark{background:var(--navy-2);color:#fff;font-size:11px;font-weight:800;line-height:1;padding:3px 7px;border-radius:3px}
+.kvm-vm .vm-name{font-size:14.5px;font-weight:800;color:var(--ink)}
+.kvm-vm .vm-role{font-size:12px;color:var(--muted)}
+.kvm{border:1.5px dashed var(--navy-2)}
+.kvm-head{font-size:13px}.kvm-head b{color:var(--ink)}
+.kvm-foot{font-size:12.5px;color:var(--muted);margin-top:6px}
+
+/* 단계 카드 */
+.steps{display:grid;grid-template-columns:repeat(5,1fr);border:1px solid var(--line-2)}
+.step{padding:16px 18px;background:var(--soft);border-right:1px solid var(--line-2);border-top:4px solid var(--navy-2)}
+.step:last-child{border-right:0}
+.step strong{display:block;margin-bottom:8px;color:var(--navy);font-size:16px}
+.step p{font-size:14.5px;color:var(--ink-2)}
+
+footer{margin-top:28px;padding-top:22px;border-top:1px solid var(--line-2);color:var(--muted);font-size:13.5px;line-height:1.8}
+
+/* 구축설계서 추가 — 장비 재구성 구성도 · 미확정 값 */
+h4{font-size:16px;font-weight:700;color:var(--navy-2);margin:22px 0 10px}
+.tbd{display:inline-block;font-size:12.5px;font-weight:700;line-height:1.5;padding:0 7px;border-radius:3px;background:#fff8e6;border:1.5px dashed #c99a2e;color:#7a5a14;white-space:nowrap}
+.arrow-case{fill:none;stroke:#fff;stroke-width:8}
+.arrow-chg{fill:none;stroke:#be185d;stroke-width:3}
+.arrow-late{fill:none;stroke:var(--late);stroke-width:3;stroke-dasharray:10 5}
+.arrow-mtv{fill:none;stroke:#15803d;stroke-width:4}
+.lbl-bg{fill:#fff;stroke-width:1.5}.lbl-chg{stroke:#be185d}.lbl-late{stroke:var(--late)}.lbl-mtv{stroke:#15803d}
+svg .arc-label{fill:#9d174d;font-weight:800;font-size:14px}
+svg .late-arc-label{fill:var(--late-ink)}
+svg .mtv-label{fill:#166534;font-weight:800;font-size:14px}
+.legend .late-key{width:24px;height:15px;background:var(--late-soft);border:2.5px solid var(--late)}
+.legend i.chg-key{height:0;background:none;border-top:3px solid #be185d}
+.legend i.late-arrow-key{height:0;background:none;border-top:3px dashed var(--late)}
+.legend i.mtv-key{height:0;background:none;border-top:4px solid #15803d}
+.num-chg{fill:#be185d}.num-late{fill:var(--late)}.num-mtv{fill:#15803d}
+svg .num-label{fill:#fff;font-size:13px;font-weight:800}
+.panel-asis-lite{fill:#fbfcfd;stroke:#cbd5e1;stroke-width:1.5}
+.heading-asis-lite{fill:#e2e8f0}
+svg .phase-title-lite{fill:#475569;font-size:16px;font-weight:800}
+.asis-server{fill:#f8fafc;stroke:#a7b3c4}
+svg .bold-s{font-size:15px;font-weight:800;fill:var(--ink-2)}
+svg .bold-l{font-size:19px;font-weight:800;fill:var(--ink)}
+.worker-late .bold-l{fill:var(--late-ink)}
+svg .xs{font-size:12px;fill:var(--muted)}
+svg .tns-title{font-size:13.5px}
+.num-new{fill:#fff}
+svg .num-new-label{fill:var(--new);font-size:12px;font-weight:800}
+.kvm-frame{fill:#f5f8fc;stroke:#7d93b2;stroke-width:1.2;stroke-dasharray:5 3}
+svg .kvm-label{fill:var(--navy-2);font-weight:700}
+.kvm-vm{fill:#fff;stroke:#6b86ab;stroke-width:1.4}
+.vm-mark{fill:var(--navy-2)}
+svg .vm-mark-label{fill:#fff;font-size:10px;font-weight:800;text-anchor:middle}
+svg .vm-name{fill:var(--ink);font-weight:600}
+.step-kind strong{display:flex;align-items:center;gap:8px}
+.stepno{display:inline-flex;align-items:center;justify-content:center;flex:none;width:24px;height:24px;border-radius:50%;color:#fff;font-size:13px;font-weight:800;line-height:1}
+.n-add{background:#fff;border:2px solid var(--new);color:var(--new)}.n-chg{background:#be185d}.n-mtv{background:#15803d}.n-late{background:var(--late)}
+.step.k-add{border-top-color:var(--new)}.step.k-chg{border-top-color:#be185d}.step.k-mtv{border-top-color:#15803d}.step.k-late{border-top-color:var(--late)}
+.step small{display:block;margin-top:6px;font-size:13px;color:var(--muted)}
+@media(max-width:800px){
+  main{padding:16px}header{padding:24px}header:after{font-size:20px;right:16px;top:18px}
+  .eyebrow{max-width:66%;font-size:10px}h1{font-size:25px}section{padding:20px 16px}
+  .cards,.steps{grid-template-columns:1fr 1fr}.card,.step{border-bottom:1px solid var(--line)}
+  table{min-width:720px}
+  .remap-row{grid-template-columns:1fr}.remap-step{justify-self:start}.remap-head{display:none}
+  .remap-arrow{flex-direction:row;padding:4px 0}.remap-arrow .glyph{transform:rotate(90deg)}
+}
+@media print{
+  @page{size:A3 landscape;margin:12mm}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{background:#fff;font-size:12px}main{padding:0;max-width:none}
+  .toolbar,nav{display:none}
+  header{padding:20px 28px}header:after{font-size:28px}h1{font-size:26px}
+  section{padding:16px 20px;margin-top:16px;break-inside:auto}
+  h2,h3{break-after:avoid}.figure,table,.steps{break-inside:avoid}
+  .figure{padding:4px}.figure svg{min-width:0}
+  .remap-row{break-inside:avoid}
+  .card{padding:10px 15px}.card b{font-size:22px}
+  table{font-size:11.5px}th,td{padding:7px 9px}thead{display:table-header-group}tr{break-inside:avoid}
+  .note,.muted{font-size:11.5px}footer{font-size:10.5px}
+}
+
+/* v1.4 현장 설치용 */
+.ipform td{border:1px solid var(--line-2)}.ipform td.blank{min-width:150px;height:42px;background:#fff}
+.ipform tr.net-head td{background:var(--navy-soft);color:var(--navy);font-weight:800}
+.ipform .na{color:var(--muted)}
+.ipform-net td:not(:first-child){min-width:170px;height:42px}
+.phase{margin:22px 0;border:1px solid var(--line-2);border-radius:6px;overflow:hidden;break-inside:avoid}
+.phase-head{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--navy);color:#fff}
+.phase-head b{font-size:19px}.phase-head small{display:inline;margin:0;font-size:14px;font-weight:500;color:#cfdbee}
+.phase-no{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:#fff;color:var(--navy);font-weight:800;font-size:16px;flex:none}
+.cktable{font-size:16px}.cktable th{border-top:0}.cktable td{padding:13px 14px;vertical-align:middle}
+.cktable td:first-child{font-weight:400}
+.cktable{table-layout:fixed}.c-ck{width:76px;text-align:center!important}.cktable th:last-child{width:32%}
+.ck{display:inline-block;cursor:pointer}.ck input{position:absolute;opacity:0;width:0;height:0}
+.ck span{display:inline-block;width:28px;height:28px;border:2.5px solid var(--navy-2);border-radius:5px;background:#fff;vertical-align:middle;position:relative}
+.ck input:checked+span{background:#15803d;border-color:#15803d}
+.ck input:checked+span:after{content:"";position:absolute;left:8px;top:2px;width:8px;height:15px;border:solid #fff;border-width:0 3.5px 3.5px 0;transform:rotate(45deg)}
+.ck input:focus-visible+span{outline:3px solid #93c5fd;outline-offset:2px}
+.ck-reset{margin-left:8px;font:inherit;font-size:13.5px;padding:3px 12px;border:1px solid var(--line-2);border-radius:4px;background:var(--soft);cursor:pointer}
+@media print{.ck-reset{display:none}.ck input:checked+span{background:#fff;border-color:var(--navy-2)}.ck input:checked+span:after{display:none}.cktable{font-size:13px}.phase{margin:12px 0}}
+
+/* v1.5 개요 그림 · NIC 표 */
+.cap{margin:8px 0 0;font-size:13.5px;color:var(--muted)}
+.env-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.env-net{border:1px solid var(--line-2);border-radius:6px;background:var(--soft);overflow:hidden}
+.env-net-head{padding:9px 14px;background:var(--navy);color:#fff;font-weight:700;font-size:14.5px}
+.env-hosts{display:flex;flex-wrap:wrap;gap:10px;padding:14px}
+.env-host{flex:1 1 150px;background:#fff;border:1.5px solid var(--line-2);border-radius:6px;padding:10px 12px}
+.env-name{font-weight:800;color:var(--navy);font-size:16px}
+.env-spec{font-size:12.5px;color:var(--muted);margin:2px 0 8px}
+.env-chips{display:flex;flex-wrap:wrap;gap:5px}
+.ec{font-size:12.5px;font-weight:700;padding:2px 8px;border-radius:3px;border:1px solid var(--line-2);background:var(--soft);color:var(--ink-2)}
+.ec-vm{background:#e8f6ee;color:#166534;border-color:#86cfa8}
+.ec-dns{background:#fff3df;color:#7c2d12;border-color:#e0a35a}
+.ec-sys{background:#f1f5f9;color:#475569}
+.ec-svc{background:var(--navy-soft);color:var(--navy);border-color:#b9c8dd}
+.ec-mvm{background:#eef2ff;color:#3730a3;border-color:#a5b4fc}
+.ec-tmp{background:#fff;color:var(--muted);border-style:dashed}
+.ec-late{background:var(--late-soft);color:var(--late-ink);border-color:var(--late)}
+.env-host.n-bas,.env-host.n-mst{border-color:var(--new)}
+.env-host.n-late{border-style:dashed;border-color:var(--late)}
+.env-foot{padding:0 14px 12px;font-size:13px;color:var(--ink-2)}
+.ipform tr.net-row td{background:var(--soft);font-weight:700}
+.ipform tr.net-row td.blank{background:#fff}
+.env-ocp .env-hosts{display:grid;grid-template-columns:repeat(4,1fr)}
+.nicform tr.grp td{border-top:2px solid var(--line-2)}.nicform td[rowspan]{vertical-align:middle;background:var(--soft);font-weight:700}
+.nicform td.na{color:var(--muted);text-align:center}
+@media(max-width:800px){.env-grid{grid-template-columns:1fr}}
+@media print{.env-net{break-inside:avoid}}
+</style></head><body><main><div class="toolbar" style="justify-content:flex-end"><span class="tag">VERSION 2.9 / 고객 제출용 · 구축설계서 v1.6 반영</span></div>
+
+<header><div class="eyebrow">SGIS INFRASTRUCTURE / TECHNICAL WORK PLAN</div><h1>국가데이터처 SGIS 오픈플랫폼<br>인프라 전환 설계 및 MTV 작업계획서</h1><p>빈 HV 정리 → Bastion·Master(KVM VM 3식) 구축 → Worker1 편입 → MTV 이관 → 원본 HV의 Worker2 전환</p><p>구축 및 이관 계획 검토본 · 수정일 2026.10.14 · 현장 실사 정보 반영 · 2026년 12월 말 종료 목표(시험 이관 결과에 따라 조정)</p></header>
+<nav aria-label="목차"><a href="#overview">01 개요</a><a href="#topology">02 구성도</a><a href="#roles">03 장비 배정</a><a href="#network">04 네트워크·스토리지</a><a href="#procedure">05 작업 절차</a><a href="#verify">06 검증·원복</a><a href="#schedule">07 일정·확인 항목</a></nav>
+<section id="overview"><h2>01. 추진 개요</h2><p>본 작업은 기존 VMware 환경의 가상머신을 OpenShift로 이관하고, 기존 장비와 재활용 서버를 활용하여 대상 인프라를 구성하는 것을 목적으로 합니다. 실사 결과 업무 VM은 <b>외부망 HV#01, 내부망 HV#02에 이미 모여 있어</b> 별도의 VM 집약 단계 없이 이 HV를 MTV 원본으로 유지합니다. 외부 HV#02·내부 HV#03의 DNS 설정과 레코드를 각 망의 Bastion DNS로 이관하고 질의를 검증한 뒤 원본 DNS VM을 종료합니다. 외부 HV#02와 내부 HV#01은 Worker1, 내부 HV#03은 Master KVM 호스트로 재구성하고, Master VM 3식은 외부 TNS-2100과 내부 HV#03에 구성합니다. Bastion과 DNS는 외부·내부 재활용 TNS-2100에 각각 구축합니다. 이관·업무 검증·안정화 완료 후 원본 HV를 Worker2로 전환합니다.</p>
+<div class="cards"><div class="card">OpenShift 클러스터<b>2개</b>외부망 1 / 내부망 1 · 망별 독립</div><div class="card">클러스터별 구성 서버<b>4식</b>Bastion 1 · Master KVM 1 · Worker 2</div><div class="card">이관 대상 VM<b>35대</b>외부망 11 / 내부망 24 · vCenter·DNS 제외</div><div class="card">원본 데이터 사용량<b>74.7TB</b>외부 12.4 / 내부 62.3 · EMC FC</div></div>
+<h3>① 현재 VMware 구성</h3><div class="env-grid">
+<div class="env-net"><div class="env-net-head">외부망 · vSphere 8 · HV 2대</div><div class="env-hosts">
+<div class="env-host"><div class="env-name">HV#01</div><div class="env-spec">TR2210 H4 · 48코어 · 1TB</div><div class="env-chips"><span class="ec ec-vm">업무 VM 11</span><span class="ec ec-sys">vCenter</span></div></div>
+<div class="env-host"><div class="env-name">HV#02</div><div class="env-spec">TR2210 H4 · 48코어 · 1TB</div><div class="env-chips"><span class="ec ec-dns">DNS VM</span><span class="ec ec-sys">vCLS</span></div></div>
+</div><div class="env-foot">데이터스토어 VMFS6 × 1 (FC · Dell EMC) · 사용 12.4TB</div></div>
+<div class="env-net"><div class="env-net-head">내부망 · vSphere 8 · HV 3대</div><div class="env-hosts">
+<div class="env-host"><div class="env-name">HV#01</div><div class="env-spec">TR2210 H4 · 48코어 · 1TB</div><div class="env-chips"><span class="ec ec-sys">vCLS</span></div></div>
+<div class="env-host"><div class="env-name">HV#02</div><div class="env-spec">TR2210 H4 · 48코어 · 1TB</div><div class="env-chips"><span class="ec ec-vm">업무 VM 24</span><span class="ec ec-sys">vCenter</span></div></div>
+<div class="env-host"><div class="env-name">HV#03</div><div class="env-spec">TR2210 H4 · 48코어 · 1TB</div><div class="env-chips"><span class="ec ec-dns">DNS VM</span><span class="ec ec-sys">vCLS</span></div></div>
+</div><div class="env-foot">데이터스토어 VMFS6 × 3 (FC · Dell EMC) · 사용 62.3TB</div></div>
+</div>
+<h3>② 현행 VM · 이관 대상 — 하이퍼바이저별</h3><div class="tablewrap"><table><thead><tr><th>망</th><th>하이퍼바이저</th><th>서비스 VM<br><small>MTV 이관 대상</small></th><th>서비스 VM OS</th><th>vCPU · 메모리</th><th>데이터스토어</th><th>VMware DNS VM<br><small>이관 안 함</small></th><th>vCenter · vCLS<br><small>이관 안 함</small></th><th>전환 후 역할</th></tr></thead><tbody>
+<tr><td rowspan="3">외부망</td><td>HV#01</td><td><b>11식</b></td><td>RHEL 8.9 8 · Windows Server 2022 3</td><td>108 · 364GB</td><td>VMFS6 1개 (FC) · 12.4TB</td><td>–</td><td>vCenter</td><td>Worker2 (MTV 완료 후)</td></tr>
+<tr><td>HV#02</td><td>–</td><td>–</td><td>–</td><td>–</td><td><b>1식</b> · Windows Server 2022 · 로컬 디스크</td><td>vCLS</td><td>Worker1</td></tr>
+<tr><td style="background:var(--soft);font-weight:700">외부망 소계</td><td style="background:var(--soft);font-weight:700">11식</td><td style="background:var(--soft);font-weight:700" colspan="3"></td><td style="background:var(--soft);font-weight:700">1식</td><td style="background:var(--soft);font-weight:700">vCenter 1식</td><td style="background:var(--soft);font-weight:700">VM 13식</td></tr>
+<tr><td rowspan="4">내부망</td><td>HV#01</td><td>–</td><td>–</td><td>–</td><td>–</td><td>–</td><td>vCLS</td><td>Worker1</td></tr>
+<tr><td>HV#02</td><td><b>24식</b></td><td>RHEL 8.9 22 · Windows Server 2022 2</td><td>196 · 760GB</td><td>VMFS6 3개 (FC) · 62.3TB</td><td>–</td><td>vCenter</td><td>Worker2 (MTV 완료 후)</td></tr>
+<tr><td>HV#03</td><td>–</td><td>–</td><td>–</td><td>–</td><td><b>1식</b> · Windows Server 2022 · 로컬 디스크</td><td>vCLS</td><td>Master KVM 호스트</td></tr>
+<tr><td style="background:var(--soft);font-weight:700">내부망 소계</td><td style="background:var(--soft);font-weight:700">24식</td><td style="background:var(--soft);font-weight:700" colspan="3"></td><td style="background:var(--soft);font-weight:700">1식</td><td style="background:var(--soft);font-weight:700">vCenter 1식</td><td style="background:var(--soft);font-weight:700">VM 26식</td></tr>
+<tr><td style="background:var(--soft);font-weight:700" colspan="2">합계</td><td style="background:var(--soft);font-weight:700">35식</td><td style="background:var(--soft);font-weight:700">RHEL 8.9 30 · Windows 5</td><td style="background:var(--soft);font-weight:700">304 · 1,124GB</td><td style="background:var(--soft);font-weight:700">74.7TB</td><td style="background:var(--soft);font-weight:700">2식</td><td style="background:var(--soft);font-weight:700">vCenter 2식</td><td style="background:var(--soft);font-weight:700">VM 39식</td></tr>
+</tbody></table></div>
+<p class="muted">VMware DNS VM은 HV·vCenter 이름 해석 전용이며 각 망 Bastion DNS로 설정·레코드를 이관한 뒤 종료·보관합니다. vCenter는 MTV가 인벤토리를 읽으므로 마지막 이관까지 유지합니다. vCLS는 vCenter가 관리하는 시스템 VM으로 수량에 포함하지 않습니다.</p>
+<h3>③ 구축할 OpenShift 인프라</h3><div class="env-grid env-ocp">
+<div class="env-net"><div class="env-net-head">외부망 클러스터 · OCP 4.22 · UPI (platform: none) · 폐쇄망</div><div class="env-hosts">
+<div class="env-host n-bas"><div class="env-name">Bastion</div><div class="env-spec">TNS-2100 #A · RHEL 9.8</div><div class="env-chips"><span class="ec ec-svc">DNS</span><span class="ec ec-svc">LB</span><span class="ec ec-svc">NTP</span><span class="ec ec-svc">미러 레지스트리</span><span class="ec ec-svc">Ignition HTTP</span><span class="ec ec-svc">etcd 백업</span></div></div>
+<div class="env-host n-mst"><div class="env-name">Master KVM</div><div class="env-spec">TNS-2100 #B · RHEL 9.8 KVM</div><div class="env-chips"><span class="ec ec-mvm">VM master-0</span><span class="ec ec-mvm">VM master-1</span><span class="ec ec-mvm">VM master-2</span><span class="ec ec-tmp">bootstrap (임시)</span></div></div>
+<div class="env-host n-wk"><div class="env-name">Worker1</div><div class="env-spec">HV#02 · RHCOS</div><div class="env-chips"><span class="ec ec-vm">이관 VM 11 수신</span></div></div>
+<div class="env-host n-late"><div class="env-name">Worker2</div><div class="env-spec">HV#01 · RHCOS</div><div class="env-chips"><span class="ec ec-late">MTV 완료 후</span></div></div>
+</div></div>
+<div class="env-net"><div class="env-net-head">내부망 클러스터 · OCP 4.22 · UPI (platform: none) · 폐쇄망</div><div class="env-hosts">
+<div class="env-host n-bas"><div class="env-name">Bastion</div><div class="env-spec">TNS-2100 · RHEL 9.8</div><div class="env-chips"><span class="ec ec-svc">DNS</span><span class="ec ec-svc">LB</span><span class="ec ec-svc">NTP</span><span class="ec ec-svc">미러 레지스트리</span><span class="ec ec-svc">Ignition HTTP</span><span class="ec ec-svc">etcd 백업</span></div></div>
+<div class="env-host n-mst"><div class="env-name">Master KVM</div><div class="env-spec">HV#03 · RHEL 9.8 KVM</div><div class="env-chips"><span class="ec ec-mvm">VM master-0</span><span class="ec ec-mvm">VM master-1</span><span class="ec ec-mvm">VM master-2</span><span class="ec ec-tmp">bootstrap (임시)</span></div></div>
+<div class="env-host n-wk"><div class="env-name">Worker1</div><div class="env-spec">HV#01 · RHCOS</div><div class="env-chips"><span class="ec ec-vm">이관 VM 24 수신</span></div></div>
+<div class="env-host n-late"><div class="env-name">Worker2</div><div class="env-spec">HV#02 · RHCOS</div><div class="env-chips"><span class="ec ec-late">MTV 완료 후</span></div></div>
+</div></div>
+</div>
+<h4>적용 버전</h4><div class="tablewrap"><table><thead><tr><th>구성요소</th><th>버전</th><th>비고</th></tr></thead><tbody>
+<tr><td>OpenShift Container Platform</td><td>4.22</td><td>z-stream <span class="tbd">TBD</span></td></tr>
+<tr><td>노드 OS</td><td>RHCOS (RHEL 9.8 기반)</td><td>Master VM · Worker</td></tr>
+<tr><td>Bastion · KVM 호스트 OS</td><td>RHEL 9.8</td><td>KVM 호스트는 libvirt/KVM</td></tr>
+<tr><td>OpenShift Virtualization · NMState</td><td>OCP 4.22 대응</td><td>Operator 미러 반입</td></tr>
+<tr><td>Migration Toolkit for Virtualization</td><td>2.12</td><td>VDDK 방식</td></tr>
+<tr><td>미러 레지스트리</td><td>mirror registry for Red Hat OpenShift (Quay)</td><td>형태 <span class="tbd">TBD</span></td></tr>
+</tbody></table></div>
+<h3>계획 기준</h3><div class="tablewrap"><table><thead><tr><th>구분</th><th>계획 기준</th></tr></thead><tbody><tr><td>대상 환경</td><td>외부망·내부망 vSphere 8(고객사 표기 VCF 8)이며 망마다 vCenter가 따로 있어 MTV Provider도 망별 1개입니다. DB 레거시 서버는 별도 DB 풀에 있으며 재구성·이관 대상에 포함하지 않습니다.</td></tr><tr><td>설치 방식</td><td>전체 폐쇄망 UPI 수동 설치입니다. Master가 KVM VM이라 BMC가 없어 IPI 전제를 충족하지 않습니다. 망별 Bastion에 <b>미러 레지스트리·DNS·로드밸런서</b>를 구축하고, Bootstrap은 Master KVM 호스트(외부 TNS-2100·내부 HV#03)의 임시 VM으로 구성한 뒤 설치 완료 후 삭제합니다.</td></tr><tr><td>Master 구성</td><td>외부망 Master는 재활용 TNS-2100, 내부망 Master는 기존 HV#03을 RHEL 9.8 KVM 호스트로 재구성하여 <b>Master VM 3식</b>을 구성합니다. 내부 Master용 HV#03은 내부 Bastion DNS 구축·레코드 이관·질의 검증 후 기존 DNS VM을 종료하고 재구성합니다. KVM은 Red Hat 지원 플랫폼이지만 시험된 통합 목록(4.21까지)에서는 Not Tested이고, 문서는 클러스터 머신마다 별도 물리 호스트를 권고하므로 06장의 위험 대응을 적용합니다.</td></tr><tr><td>이관 방식</td><td><b>VDDK</b> · vCenter·ESXi 443·902(관리망) 경유 네트워크 복사. 최대 동시 이관 10대(초기 상한, 시험 결과에 따라 조정), Preserve static IPs로 기존 IP 유지</td></tr><tr><td>버전</td><td>OCP 4.22 / RHEL 9.8 기반 RHCOS / Bastion·KVM 호스트 RHEL 9.8 / MTV 2.12(OCP 4.22 대응 버전). 구축 전 4.22.z·RHCOS 이미지 및 MTV 지원 조합 확정 필요</td></tr><tr><td>기존 HV</td><td>CPU 48c / 메모리 1TB / 물리 포트 6(관리 2·서비스 2·nasbak 2, 10G) + IPMI(1G) + FC HBA. Worker 전환 후에도 같은 사양·포트를 사용합니다.</td></tr><tr><td>재활용 장비</td><td>TNS-2100 · 기존 기록상 서버당 36 Core / 메모리 576GB / NIC 5포트. 관리 포트 2개(bond0) 확보, 실제 부품·디스크(SSD) 구성 및 지원 범위 확인 필요</td></tr><tr><td>범위</td><td>Bastion DNS 구축·레코드 전환·원본 DNS VM 종료 후 빈 HV 정리, 기존 장비 재구성, 재활용 서버 구축, Master KVM·VM 구성, 네트워크 구성, MTV 이관, 최종 Worker2 편입</td></tr><tr><td>일정</td><td>1차 사전작업(10월) → 2차 재구성(11월) → 3차 MTV(12월, 1개월, 외부망 먼저 → 내부망) · <b>12월 말 종료</b></td></tr></tbody></table></div></section>
+<section id="topology"><h2>02. 현행 및 목표 구성</h2><h3>망별 장비 재구성 (AS-IS → TO-BE)</h3>
+<div class="legend"><span><i class="old-key"></i>기존 HV (VMware)</span><span><i class="new-key"></i>+ 신규 장비 (재활용 TNS-2100)</span><span><i class="chg-key"></i>지금 재구성</span><span><i class="late-arrow-key"></i>MTV 완료 후 전환</span><span><i class="mtv-key"></i>MTV 이관 수신 (VM 이동)</span></div>
+<h4>외부망 — 기존 HV 2대 + 재활용 TNS-2100 2대</h4>
+<div class="remap"><div class="remap-row remap-head"><div></div><div class="remap-colhead ch-asis">AS-IS · 현재 VMware</div><div></div><div class="remap-colhead ch-tobe">TO-BE · OpenShift</div></div>
+<div class="remap-row">
+<div class="remap-step s-new">1</div>
+<div class="remap-box is-empty">— (미사용)</div>
+<div class="remap-arrow a-new"><span class="glyph">+</span><span class="lbl">신규</span></div>
+<div class="remap-box is-new"><div class="ttl">Bastion</div><div class="sub">재활용 TNS-2100 #A · RHEL 9.8</div><div class="spec">TNS-2100 · 36코어 · 576GB</div><div class="ip-need"><span class="badge-ip">● IP 2개</span></div><div class="meta">DNS · LB · NTP · 미러 레지스트리 · Ignition HTTP</div></div>
+</div>
+<div class="remap-row">
+<div class="remap-step s-new">2</div>
+<div class="remap-box is-empty">— (미사용)</div>
+<div class="remap-arrow a-new"><span class="glyph">+</span><span class="lbl">신규</span></div>
+<div class="remap-box is-new"><div class="ttl">Master</div><div class="sub">재활용 TNS-2100 #B</div><div class="spec">TNS-2100 · 36코어 · 576GB</div><div class="ip-need"><span class="badge-ip">● IP 5개</span></div><div class="kvm"><div class="kvm-head">KVM 하이퍼바이저 (RHEL 9.8) 위 <b>Master 노드 VM × 3</b></div><div class="kvm-vms"><div class="kvm-vm"><b class="vm-mark">VM</b><span class="vm-name">master-0</span><span class="vm-role">Control Plane · etcd</span></div><div class="kvm-vm"><b class="vm-mark">VM</b><span class="vm-name">master-1</span><span class="vm-role">Control Plane · etcd</span></div><div class="kvm-vm"><b class="vm-mark">VM</b><span class="vm-name">master-2</span><span class="vm-role">Control Plane · etcd</span></div></div><div class="kvm-foot">+ Bootstrap 임시 VM (설치 후 삭제)</div></div></div>
+</div>
+<div class="remap-row">
+<div class="remap-step s-chg">3</div>
+<div class="remap-box"><div class="ttl">HV#02</div><div class="sub">VMware · DNS VM · vCLS</div><div class="meta">TR2210 H4 · 48코어 · 1TB</div></div>
+<div class="remap-arrow a-chg"><span class="glyph">→</span><span class="lbl">재구성</span></div>
+<div class="remap-box is-worker"><div class="ttl">Worker1</div><div class="sub">기존 HV#02 재구성 · RHCOS 노드 · 기존 IP 재사용</div><div class="meta">Bastion DNS 전환·DNS VM 종료 → 호스트 제거·LUN 매핑 해제 후 편입 · MTV 이전 선구축</div><span class="chip">④ MTV 이관 수신 · 업무 VM 11대 (HV#01)</span></div>
+</div>
+<div class="remap-row">
+<div class="remap-step s-late">5</div>
+<div class="remap-box"><div class="ttl">HV#01</div><div class="sub">VMware · 업무 VM 11 + vCenter</div><div class="meta">TR2210 H4 · 48코어 · 1TB · ④ 업무 VM 11대 MTV 이관 후 원본 비워짐</div></div>
+<div class="remap-arrow a-late"><span class="glyph">→</span><span class="lbl">MTV 완료 후<br>전환</span></div>
+<div class="remap-box is-late"><div class="ttl">Worker2</div><div class="sub">기존 HV#01 · 기존 IP 재사용</div><div class="meta">MTV 완료 후 전환 · 전환 전까지 VMware 원본 유지</div></div>
+</div>
+</div>
+<div class="steps step-kind"><div class="step k-add"><strong><span class="stepno n-add">1</span>Bastion 구축</strong><p>+ 재활용 TNS-2100 #A<br>DNS·LB·미러 레지스트리·NTP<br>HV#02 DNS VM 레코드 이관<br>NAS/BK 2포트 신규 포설(etcd 백업)</p><small>HV 작업과 무관하게 먼저 시작 · 2차(11월) 최초 구축</small></div><div class="step k-add"><strong><span class="stepno n-add">2</span>Master 구축</strong><p>+ 재활용 TNS-2100 #B<br>KVM 호스트 + Master VM 3식<br>Bootstrap으로 클러스터 설치</p><small>Bootstrap은 설치 후 삭제</small></div><div class="step k-chg"><strong><span class="stepno n-chg">3</span>Worker1 재구성</strong><p>HV#02 DNS VM 종료<br>호스트 제거·LUN 매핑 해제<br>RHCOS 설치 → 클러스터 편입</p><small>Worker2는 아직 없음</small></div><div class="step k-mtv"><strong><span class="stepno n-mtv">4</span>MTV 이관</strong><p>HV#01 업무 VM 11대<br>→ Worker1 (단독 운영)</p><small>외부망 먼저 진행</small></div><div class="step k-late"><strong><span class="stepno n-late">5</span>Worker2 전환</strong><p>MTV 완료 확인<br>HV#01 → Worker2 편입</p><small>전환 전까지 VMware 원본 유지</small></div></div>
+<h4>내부망 — 기존 HV 3대 + 재활용 TNS-2100 1대</h4>
+<div class="remap"><div class="remap-row remap-head"><div></div><div class="remap-colhead ch-asis">AS-IS · 현재 VMware</div><div></div><div class="remap-colhead ch-tobe">TO-BE · OpenShift</div></div>
+<div class="remap-row">
+<div class="remap-step s-new">1</div>
+<div class="remap-box is-empty">— (미사용)</div>
+<div class="remap-arrow a-new"><span class="glyph">+</span><span class="lbl">신규</span></div>
+<div class="remap-box is-new"><div class="ttl">Bastion</div><div class="sub">재활용 TNS-2100 · RHEL 9.8</div><div class="spec">TNS-2100 · 36코어 · 576GB</div><div class="ip-need"><span class="badge-ip">● IP 2개</span></div><div class="meta">DNS · LB · NTP · 미러 레지스트리 · Ignition HTTP</div></div>
+</div>
+<div class="remap-row">
+<div class="remap-step s-chg">2</div>
+<div class="remap-box"><div class="ttl">HV#03</div><div class="sub">VMware · DNS VM · vCLS</div><div class="meta">TR2210 H4 · 48코어 · 1TB</div></div>
+<div class="remap-arrow a-chg"><span class="glyph">→</span><span class="lbl">재구성</span></div>
+<div class="remap-box is-worker"><div class="ttl">Master</div><div class="sub">기존 HV#03 재구성 · 호스트 IP 신규</div><div class="ip-need"><span class="badge-ip">● IP 5개</span></div><div class="meta">Bastion DNS 전환·DNS VM 종료 → 호스트 제거·LUN 매핑 해제 후 재구성</div><div class="kvm"><div class="kvm-head">KVM 하이퍼바이저 (RHEL 9.8) 위 <b>Master 노드 VM × 3</b></div><div class="kvm-vms"><div class="kvm-vm"><b class="vm-mark">VM</b><span class="vm-name">master-0</span><span class="vm-role">Control Plane · etcd</span></div><div class="kvm-vm"><b class="vm-mark">VM</b><span class="vm-name">master-1</span><span class="vm-role">Control Plane · etcd</span></div><div class="kvm-vm"><b class="vm-mark">VM</b><span class="vm-name">master-2</span><span class="vm-role">Control Plane · etcd</span></div></div><div class="kvm-foot">+ Bootstrap 임시 VM (설치 후 삭제)</div></div></div>
+</div>
+<div class="remap-row">
+<div class="remap-step s-chg">3</div>
+<div class="remap-box"><div class="ttl">HV#01</div><div class="sub">VMware · vCLS만</div><div class="meta">TR2210 H4 · 48코어 · 1TB</div></div>
+<div class="remap-arrow a-chg"><span class="glyph">→</span><span class="lbl">재구성</span></div>
+<div class="remap-box is-worker"><div class="ttl">Worker1</div><div class="sub">기존 HV#01 재구성 · RHCOS 노드 · 기존 IP 재사용</div><div class="meta">호스트 제거·LUN 매핑 해제 후 편입 · MTV 이전 선구축</div><span class="chip">④ MTV 이관 수신 · 업무 VM 24대 (HV#02)</span></div>
+</div>
+<div class="remap-row">
+<div class="remap-step s-late">5</div>
+<div class="remap-box"><div class="ttl">HV#02</div><div class="sub">VMware · 업무 VM 24 + vCenter</div><div class="meta">TR2210 H4 · 48코어 · 1TB · ④ 업무 VM 24대 MTV 이관 후 원본 비워짐</div></div>
+<div class="remap-arrow a-late"><span class="glyph">→</span><span class="lbl">MTV 완료 후<br>전환</span></div>
+<div class="remap-box is-late"><div class="ttl">Worker2</div><div class="sub">기존 HV#02 · 기존 IP 재사용</div><div class="meta">MTV 완료 후 전환 · 전환 전까지 VMware 원본 유지</div></div>
+</div>
+</div>
+<div class="steps step-kind"><div class="step k-add"><strong><span class="stepno n-add">1</span>Bastion 구축</strong><p>+ 재활용 TNS-2100<br>DNS·LB·미러 레지스트리·NTP<br>HV#03 DNS VM 레코드 이관<br>NAS/BK 2포트 신규 포설(etcd 백업)</p><small>HV 작업과 무관하게 먼저 시작 · 2차(11월) 최초 구축</small></div><div class="step k-chg"><strong><span class="stepno n-chg">2</span>Master 재구성</strong><p>HV#03 DNS VM 종료<br>KVM 호스트 + Master VM 3식<br>Bootstrap으로 클러스터 설치</p><small>Bootstrap은 설치 후 삭제</small></div><div class="step k-chg"><strong><span class="stepno n-chg">3</span>Worker1 재구성</strong><p>HV#01 (vCLS만)<br>호스트 제거·LUN 매핑 해제<br>RHCOS 설치 → 클러스터 편입</p><small>Worker2는 아직 없음</small></div><div class="step k-mtv"><strong><span class="stepno n-mtv">4</span>MTV 이관</strong><p>HV#02 업무 VM 24대<br>→ Worker1 (단독 운영)</p><small>외부망 이관 후 진행</small></div><div class="step k-late"><strong><span class="stepno n-late">5</span>Worker2 전환</strong><p>MTV 완료 확인<br>HV#02 → Worker2 편입</p><small>전환 전까지 VMware 원본 유지</small></div></div>
+
+<p class="note">목표 구성은 MTV 완료 후를 기준으로 작성했습니다. 업무 VM이 모여 있는 외부 HV#01·내부 HV#02는 MTV 원본으로 유지하고, 이관·업무 검증·안정화와 원복 판단이 끝난 뒤 Worker2로 전환합니다. 그 기간에는 Worker1만으로 운영합니다. vCenter VM은 MTV가 인벤토리를 읽으므로 마지막 이관까지 유지합니다. 외부 Master는 재활용 TNS-2100, 내부 Master는 기존 HV#03 재구성 호스트에 Master VM 3식을 구성합니다. etcd 정족수는 VM 3식으로 확보하되 KVM 호스트는 물리 단일 장애점이므로 06장의 위험 대응을 적용합니다.</p>
+<p class="muted">DB 레거시 풀은 재구성 대상에서 제외합니다. 연결선은 논리적 네트워크 구성을 나타내며 포트·bond·브리지·FC 상세는 04장 전체 구성도에 표시합니다. 기존 DNS VM은 MTV 대상에서 제외합니다. 외부·내부 Bastion에 DNS를 각각 구축하고 기존 설정과 레코드를 이관합니다. 질의와 vCenter·ESXi 관리 연결을 확인한 뒤 원본 VM을 종료·보관하고, 외부 HV#02·내부 HV#03을 재구성합니다. vCLS는 vCenter가 관리하는 시스템 VM으로 이관 대상이 아닙니다.</p>
+<h3>망별 MTV 진행 중 구성</h3><div class="steps"><div class="step"><strong>① 빈 HV 정리</strong><p>각 망 Bastion에 DNS 구축·설정/레코드 이관<br>질의 확인 후 DNS VM 종료; 외부 HV#02·내부 HV#03 재구성</p></div><div class="step"><strong>② 대상 구축</strong><p>Bastion → Master(KVM VM 3식) → Worker1<br>Worker2는 아직 없음</p></div><div class="step"><strong>③ MTV 이관</strong><p>원본 HV의 VM → Worker1<br>외부망 먼저 → 내부망</p></div><div class="step"><strong>④ 원본 전환</strong><p>안정화·원복 조건 확인<br>원본 HV → Worker2</p></div><div class="step"><strong>⑤ 최종 구성</strong><p>Worker1 + Worker2<br>노드·VM 최종 확인</p></div></div></section>
+<section id="roles"><h2>03. 장비 활용 및 전환 계획</h2><div class="tablewrap"><table><thead><tr><th>망</th><th>TO-BE 역할</th><th>장비 출처</th><th>IP 계획</th><th>전환 시점·확인 사항</th></tr></thead><tbody><tr class="row-new"><td>외부망</td><td>Master (KVM 호스트 · Master VM 3식)</td><td><span class="badge-new">재활용</span> TNS-2100</td><td><span class="badge-ip">● IP 할당 필요</span>호스트 + VM 3식</td><td>2차 재구성 · Bastion 이후 구축</td></tr><tr class="row-new"><td>외부망</td><td>Bastion (+미러·DNS·LB)</td><td><span class="badge-new">재활용</span> TNS-2100</td><td><span class="badge-ip">● IP 할당 필요</span></td><td>2차 재구성 · 최초 구축 (HV와 무관하게 바로 구축 가능)</td></tr><tr><td>외부망</td><td>Worker1</td><td><span class="badge-old">재구성</span> 기존 HV#02</td><td>기존 IP 재사용</td><td>vCLS 정리 후 · Bastion 구성과 병행해 선편입</td></tr><tr><td>외부망</td><td>Worker2</td><td><span class="badge-late">안정화 후</span> 기존 HV#01</td><td>기존 IP 재사용</td><td>MTV 원본(업무 VM 11 + vCenter) 유지 → 이관·업무 검증·안정화 완료 후 Worker2 전환</td></tr><tr><td>내부망</td><td>Master (KVM 호스트 · Master VM 3식)</td><td><span class="badge-old">재구성</span> 기존 HV#03</td><td><span class="badge-ip">● IP 할당 필요</span>호스트 + VM 3식</td><td>Bastion DNS 전환·검증 후 기존 DNS VM을 종료하고 재구성</td></tr><tr class="row-new"><td>내부망</td><td>Bastion (+미러·DNS·LB)</td><td><span class="badge-new">재활용</span> TNS-2100</td><td><span class="badge-ip">● IP 할당 필요</span></td><td>2차 재구성 · 최초 구축 (즉시 준비 가능)</td></tr><tr><td>내부망</td><td>Worker1</td><td><span class="badge-old">재구성</span> 기존 HV#01</td><td>기존 IP 재사용</td><td>vCLS 정리 후 · Bastion 구성과 병행해 선편입</td></tr><tr><td>내부망</td><td>Worker2</td><td><span class="badge-late">안정화 후</span> 기존 HV#02</td><td>기존 IP 재사용</td><td>MTV 원본(업무 VM 24 + vCenter) 유지 → 이관·업무 검증·안정화 완료 후 Worker2 전환</td></tr></tbody></table></div>
+<p class="note"><b>재활용 TNS-2100 3대: 외부 Master·외부 Bastion·내부 Bastion — 모두 <span class="badge-ip">● IP 할당 필요</span></b><br>내부 Bastion TNS-2100과 내부 Master HV#03은 신규 IP를 할당합니다. 내부 Worker1 HV#01과 Worker2 HV#02는 기존 IP를 재사용합니다. 기존 HV 5대(외부망 2·내부망 3)는 모두 재구성합니다. 재활용 TNS-2100 5대 중 3대(외부 Master·Bastion, 내부 Bastion)를 투입하고 2대는 여유분으로 보관합니다. Master 호스트는 외부 TNS-2100과 내부 HV#03입니다. 양쪽 모두 Master VM 3식과 Bootstrap 임시 VM(약 28~32 vCPU, 112~128GB, SSD/NVMe)을 수용해야 하며, 실제 자원·디스크 성능을 착수 전 확인합니다. 내부 HV#03의 Master 호스트 IP는 신규 할당 대상입니다.</p>
+<h3>Worker1 수용 용량 — 이관 기간 1대로 전체 VM 수용</h3><div class="tablewrap"><table><thead><tr><th>망</th><th>이관 VM</th><th>vCPU</th><th>메모리</th><th>CPU 요청 (vCPU ÷ 10)</th><th>메모리 사용 예상</th><th>판단</th></tr></thead><tbody>
+<tr><td>외부망</td><td>11대</td><td>108</td><td>364GB</td><td>약 11 / 48코어</td><td>약 440GB / 1TB (43%)</td><td>수용 가능</td></tr>
+<tr><td>내부망</td><td>24대</td><td>196</td><td>760GB</td><td>약 20 / 48코어</td><td>약 840GB / 1TB (82%)</td><td>수용 가능 · 여유 약 180GB</td></tr>
+</tbody></table></div></section>
+<section id="network"><h2>04. 네트워크·IP 계획 및 스토리지 요청 작업</h2><p class="note"><strong>실사 기준 네트워크·스토리지 구성 (2026-10-12)</strong><br>기존 HV는 vswitch 3개(서비스, nasbak, 관리·vMotion)에 각각 물리 포트 2개가 연결된 6포트 구성입니다. 관리망은 태그 없음, 서비스망 VLAN 130, nasbak망 VLAN 701·710이며 외부망·내부망이 같습니다. 업무 VM의 VMFS6 데이터스토어는 FC로 연결된 Dell EMC 스토리지(장치 모델 SYMMETRIX)의 LUN이고 모든 HV에 연결되어 있습니다. Worker로 전환하는 HV는 같은 물리 포트·HBA를 그대로 사용합니다.</p>
+<h3>전체 구성도 — 한 망 기준</h3><div class="legend"><span><i style="background:var(--mgmt)"></i>관리망 (bond0)</span><span><i style="background:var(--svc)"></i>서비스망 (bond1)</span><span><i style="background:var(--bk)"></i>nasbak망 (bond2)</span><span><i class="ipmi-key"></i>IPMI망</span><span><i style="background:#0f766e"></i>FC SAN</span><span><i class="tbd-key"></i>조건부 · 확인 필요</span></div>
+<div class="figure"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 770" role="img" aria-label="전환 후 OpenShift 클러스터 전체 구성도: Bastion, Master KVM 호스트, Worker 2대와 관리망·서비스망·nasbak망·IPMI망, FC 스토리지, 소스 VMware">
+<text x="20" y="90" class="small">OpenShift 노드</text>
+<rect x="200" y="60" width="230" height="270" rx="7" class="server"/><text x="315" y="90" text-anchor="middle" class="bold">Bastion</text>
+<rect x="212" y="104" width="206" height="25" rx="4" class="svcbox"/><text x="315" y="121" text-anchor="middle" class="small">API LB 6443 · MCS 22623</text>
+<rect x="212" y="134" width="206" height="25" rx="4" class="svcbox"/><text x="315" y="151" text-anchor="middle" class="small">Ingress LB 443 · 80 (L4)</text>
+<rect x="212" y="164" width="206" height="25" rx="4" class="svcbox"/><text x="315" y="181" text-anchor="middle" class="small">DNS api · *.apps · HV · vc</text>
+<rect x="212" y="194" width="206" height="25" rx="4" class="svcbox"/><text x="315" y="211" text-anchor="middle" class="small">NTP 123/UDP (망별 NTP 동기화)</text>
+<rect x="212" y="224" width="206" height="25" rx="4" class="svcbox"/><text x="315" y="241" text-anchor="middle" class="small">미러 레지스트리 Quay :8443</text>
+<rect x="212" y="254" width="206" height="25" rx="4" class="svcbox"/><text x="315" y="271" text-anchor="middle" class="small">HTTP · Ignition 배포</text>
+<text x="315" y="300" text-anchor="middle" class="small">bond0 관리 ×2 · bond2 NAS/BK ×2</text><text x="315" y="320" text-anchor="middle" class="small new-text">NAS/BK 신규 포설 · etcd 백업</text>
+<rect x="445" y="60" width="260" height="270" rx="7" class="server"/><text x="575" y="90" text-anchor="middle" class="bold">Master KVM 호스트</text>
+<rect x="457" y="124" width="74" height="44" rx="5" class="vm"/><text x="494" y="151" text-anchor="middle" class="small">master-0</text>
+<rect x="538" y="124" width="74" height="44" rx="5" class="vm"/><text x="575" y="151" text-anchor="middle" class="small">master-1</text>
+<rect x="619" y="124" width="74" height="44" rx="5" class="vm"/><text x="656" y="151" text-anchor="middle" class="small">master-2</text>
+<rect x="457" y="176" width="236" height="34" rx="5" class="box-tbd"/><text x="575" y="198" text-anchor="middle" class="small">bootstrap VM (임시 · 설치 후 삭제)</text>
+<rect x="457" y="218" width="236" height="28" rx="4" class="box-mgmt"/><text x="575" y="237" text-anchor="middle" class="small">브리지 br0 (관리망)</text>
+<text x="575" y="268" text-anchor="middle" class="small">bond0 MGMT ×2 (관리망만)</text>
+<rect x="457" y="282" width="236" height="26" rx="4" class="ip-badge"/><text x="575" y="300" text-anchor="middle" class="ip-label">● IP 5: 호스트 1 · VM 3 · 임시 1</text>
+<rect x="720" y="60" width="320" height="270" rx="7" class="server"/><text x="880" y="90" text-anchor="middle" class="bold">Worker1</text>
+<rect x="732" y="124" width="296" height="34" rx="5" class="vm"/><text x="880" y="146" text-anchor="middle" class="small">OpenShift Virtualization · 이관 VM (NIC 2~3)</text>
+<rect x="732" y="168" width="80" height="66" rx="4" class="box-mgmt"/><text x="772" y="196" text-anchor="middle" class="small">노드 IP</text><text x="772" y="216" text-anchor="middle" class="small">기본 GW</text>
+<rect x="820" y="168" width="90" height="30" rx="4" class="box-svc"/><text x="865" y="188" text-anchor="middle" class="small">NAD 130</text>
+<rect x="918" y="168" width="52" height="30" rx="4" class="box-tbd"/><text x="944" y="188" text-anchor="middle" class="small">701</text>
+<rect x="976" y="168" width="52" height="30" rx="4" class="box-bk"/><text x="1002" y="188" text-anchor="middle" class="small">710</text>
+<rect x="820" y="206" width="90" height="28" rx="4" class="box-svc"/><text x="865" y="225" text-anchor="middle" class="small">br-svc</text>
+<rect x="918" y="206" width="110" height="28" rx="4" class="box-bk"/><text x="973" y="225" text-anchor="middle" class="small">br-bk</text>
+<rect x="732" y="244" width="80" height="30" rx="4" class="box-mgmt"/><text x="772" y="264" text-anchor="middle" class="small">bond0</text>
+<rect x="820" y="244" width="90" height="30" rx="4" class="box-svc"/><text x="865" y="264" text-anchor="middle" class="small">bond1</text>
+<rect x="918" y="244" width="110" height="30" rx="4" class="box-bk"/><text x="973" y="264" text-anchor="middle" class="small">bond2</text>
+<text x="772" y="294" text-anchor="middle" class="small">관리 ×2</text><text x="865" y="294" text-anchor="middle" class="small">서비스 ×2</text><text x="973" y="294" text-anchor="middle" class="small">nasbak ×2</text>
+<text x="880" y="316" text-anchor="middle" class="small">mode 1 · IPMI · FC HBA</text>
+<g class="worker-late"><rect x="1055" y="60" width="320" height="270" rx="7" class="server late-server"/><text x="1215" y="90" text-anchor="middle" class="bold">Worker2</text>
+<rect x="1067" y="124" width="296" height="34" rx="5" class="vm"/><text x="1215" y="146" text-anchor="middle" class="small">OpenShift Virtualization · 이관 VM (NIC 2~3)</text>
+<rect x="1067" y="168" width="80" height="66" rx="4" class="box-mgmt"/><text x="1107" y="196" text-anchor="middle" class="small">노드 IP</text><text x="1107" y="216" text-anchor="middle" class="small">기본 GW</text>
+<rect x="1155" y="168" width="90" height="30" rx="4" class="box-svc"/><text x="1200" y="188" text-anchor="middle" class="small">NAD 130</text>
+<rect x="1253" y="168" width="52" height="30" rx="4" class="box-tbd"/><text x="1279" y="188" text-anchor="middle" class="small">701</text>
+<rect x="1311" y="168" width="52" height="30" rx="4" class="box-bk"/><text x="1337" y="188" text-anchor="middle" class="small">710</text>
+<rect x="1155" y="206" width="90" height="28" rx="4" class="box-svc"/><text x="1200" y="225" text-anchor="middle" class="small">br-svc</text>
+<rect x="1253" y="206" width="110" height="28" rx="4" class="box-bk"/><text x="1308" y="225" text-anchor="middle" class="small">br-bk</text>
+<rect x="1067" y="244" width="80" height="30" rx="4" class="box-mgmt"/><text x="1107" y="264" text-anchor="middle" class="small">bond0</text>
+<rect x="1155" y="244" width="90" height="30" rx="4" class="box-svc"/><text x="1200" y="264" text-anchor="middle" class="small">bond1</text>
+<rect x="1253" y="244" width="110" height="30" rx="4" class="box-bk"/><text x="1308" y="264" text-anchor="middle" class="small">bond2</text>
+<text x="1107" y="294" text-anchor="middle" class="small">관리 ×2</text><text x="1200" y="294" text-anchor="middle" class="small">서비스 ×2</text><text x="1308" y="294" text-anchor="middle" class="small">nasbak ×2</text>
+<text x="1215" y="316" text-anchor="middle" class="small">mode 1 · IPMI · FC HBA</text></g>
+<path d="M290 330 V400" class="wire mgmt"/><path d="M325 330 V480" class="wire bk"/><circle cx="325" cy="480" r="4.5" class="dot"/><path d="M360 330 V520" class="wire ipmi"/>
+<path d="M555 330 V400" class="wire mgmt"/><path d="M640 330 V520" class="wire ipmi"/>
+<path d="M772 330 V400" class="wire mgmt"/><path d="M865 330 V440" class="wire svc"/><path d="M973 330 V480" class="wire bk"/><path d="M1005 330 V520" class="wire ipmi"/><path d="M1030 330 V570" class="wire fc"/>
+<path d="M1107 330 V400" class="wire mgmt"/><path d="M1200 330 V440" class="wire svc"/><path d="M1308 330 V480" class="wire bk"/><path d="M1340 330 V520" class="wire ipmi"/><path d="M1365 330 V570" class="wire fc"/>
+<path d="M200 400 H1380" class="bus mgmt"/><path d="M200 440 H1380" class="bus svc"/><path d="M200 480 H1380" class="bus bk"/><path d="M200 520 H1380" class="bus ipmi"/>
+<text x="20" y="405" class="small">관리망 · 태그 없음</text><text x="20" y="445" class="small">서비스망 · VLAN 130</text><text x="20" y="485" class="small">nasbak · VLAN 701·710</text><text x="20" y="525" class="small">IPMI망 (관리망 GW)</text>
+<circle cx="290" cy="400" r="4.5" class="dot"/><circle cx="360" cy="520" r="4.5" class="dot"/><circle cx="555" cy="400" r="4.5" class="dot"/><circle cx="640" cy="520" r="4.5" class="dot"/><circle cx="772" cy="400" r="4.5" class="dot"/><circle cx="865" cy="440" r="4.5" class="dot"/><circle cx="973" cy="480" r="4.5" class="dot"/><circle cx="1005" cy="520" r="4.5" class="dot"/><circle cx="1107" cy="400" r="4.5" class="dot"/><circle cx="1200" cy="440" r="4.5" class="dot"/><circle cx="1308" cy="480" r="4.5" class="dot"/><circle cx="1340" cy="520" r="4.5" class="dot"/><circle cx="230" cy="400" r="4.5" class="dot"/>
+<text x="1040" y="556" class="small">FC</text>
+<text x="20" y="600" class="small">소스 · 스토리지</text>
+<rect x="200" y="570" width="540" height="140" rx="8" class="panel panel-asis"/><text x="470" y="598" text-anchor="middle" class="bold">소스 VMware · 이관 완료까지 유지</text><text x="470" y="626" text-anchor="middle" class="small">vCenter(vc) + ESXi — 원본 HV (업무 VM 위치)</text><text x="470" y="650" text-anchor="middle" class="small">업무 VM 이관 / DNS VM · vCLS는 이관 안 함</text><text x="470" y="674" text-anchor="middle" class="small">OCP 노드 → vCenter · ESXi 443 · 902/TCP (관리망)</text>
+<path d="M230 570 V400" class="wire mgmt"/><text x="238" y="556" class="small">443 · 902</text>
+<path d="M740 640 H780" class="wire fc"/><text x="760" y="632" text-anchor="middle" class="small">FC</text>
+<rect x="780" y="570" width="600" height="140" rx="8" class="box-st"/><text x="1080" y="598" text-anchor="middle" class="bold">Dell EMC 스토리지 · SYMMETRIX · FC SAN</text><text x="1080" y="626" text-anchor="middle" class="small">원본: VMFS6 데이터스토어 (FC LUN)</text>
+<text x="200" y="736" class="small">Master KVM 호스트·Bastion은 FC SAN에 연결하지 않습니다. 양 망 Bastion은 etcd 백업을 위해 NAS/BK 2포트를 신규 포설하고 bond2를 구성합니다.</text><text x="200" y="758" class="small">Master KVM 호스트는 관리망만 사용합니다(NAS/BK 포설 없음). IP 대역 미확정 · 포트 속도: IPMI 1G, 그 외 10G</text>
+</svg></div>
+<p class="muted">한 망 기준 그림이며 외부망·내부망이 같은 구조입니다. 망별 장비 배정은 03장을 따릅니다. 각 Bastion은 관리 2포트와 etcd 백업용 NAS/BK 2포트(신규 포설)를 사용합니다. 노드 간 통신과 MTV 이관 트래픽(443·902)은 관리망 bond0을 사용하고, 서비스망·nasbak망은 노드 IP 없이 브리지로 VM에만 연결합니다. 기본 게이트웨이는 관리망에만 둡니다.</p>
+<h3>노드별 포트·망 구성</h3><div class="tablewrap"><table><thead><tr><th>서버</th><th>관리망 bond0</th><th>서비스망 bond1</th><th>nasbak bond2</th><th>IPMI · FC</th></tr></thead><tbody><tr><td>Worker1·2<br><small>기존 HV 전환</small></td><td>2포트 · mode 1 · 태그 없음 · 노드 IP·기본 GW</td><td>2포트 · mode 1 · trunk 130 · IP 없음 → br-svc</td><td>2포트 · mode 1 · trunk 710 (701 조건부) · IP 없음 → br-bk</td><td>기존 IPMI 사용 · 재설치 전 VMFS LUN 매핑 해제</td></tr><tr class="row-new"><td>외부 Master KVM<br><small>재활용 TNS-2100</small></td><td>MGMT 2포트 · mode 1 → br0</td><td>없음</td><td>없음</td><td>신규 IP · FC 연결 안 함</td></tr><tr><td>내부 Master KVM<br><small>기존 HV#03 재구성</small></td><td>MGMT 2포트 · mode 1 → br0</td><td>없음</td><td>없음</td><td>신규 IP · 재구성 전 VMFS LUN 매핑 해제</td></tr><tr class="row-new"><td>외부 Bastion<br><small>재활용 TNS-2100</small></td><td>MGMT 2포트 · mode 1</td><td>없음</td><td>NAS/BK 2포트 신규 포설 · mode 1 · etcd 백업</td><td>신규 IP · IPMI 확인 · FC 연결 안 함</td></tr><tr class="row-new"><td>내부 Bastion<br><small>재활용 TNS-2100</small></td><td>MGMT 2포트 · mode 1</td><td>없음</td><td>NAS/BK 2포트 신규 포설 · mode 1 · etcd 백업</td><td>신규 IP · IPMI 확인 · FC 연결 안 함</td></tr></tbody></table></div>
+<p class="muted">bond mode 1(active-backup)은 스위치에 LACP를 만들지 않습니다. 대기 포트에도 같은 VLAN이 trunk로 허용되어 있어야 장애 시 전환됩니다. vMotion 포트그룹은 OpenShift에서 사용하지 않습니다. 포트 속도는 bond 포트 10G, IPMI 1G이며 TNS-2100 NIC의 10G 지원은 확인이 필요합니다.</p>
+<h3>Bastion 제공 서비스</h3><div class="tablewrap"><table><thead><tr><th>서비스</th><th>포트</th><th>대상·비고</th></tr></thead><tbody><tr><td>API 로드밸런서</td><td>6443</td><td>Bootstrap(설치 중) + Master VM 3식 · L4</td></tr><tr><td>Machine Config Server</td><td>22623</td><td>Bootstrap + Master VM 3식 · 클러스터 내부 전용</td></tr><tr><td>Ingress 로드밸런서</td><td>443 · 80</td><td>Worker · 콘솔·인증 Route용(관리망). VM 서비스는 Route를 쓰지 않음</td></tr><tr><td>DNS</td><td>53</td><td>api · api-int · *.apps, 노드 정·역방향, 기존 DNS VM의 설정·HV·vCenter 레코드 이관</td></tr><tr><td>NTP</td><td>123/UDP</td><td>망별 NTP 서버와 동기화 후 노드·KVM 호스트에 시간 제공</td></tr><tr><td>미러 레지스트리</td><td>8443</td><td>mirror registry for Red Hat OpenShift(Quay). 443은 LB가 사용하므로 8443으로 명시. 상시 운영·백업 대상</td></tr><tr><td>HTTP (Ignition)</td><td>설치 시 지정</td><td>설치 중 Bootstrap·Master·Worker의 Ignition 배포</td></tr></tbody></table></div>
+<h3>IP 할당 계획 — 신규 IP 망별 7개 (관리망 6 · nasbak 1)</h3><div class="tablewrap"><table><thead><tr><th>망</th><th>신규 IP 할당 대상</th><th>기존 IP 재사용 대상</th></tr></thead><tbody><tr><td>외부</td><td><span class="badge-ip">● IP 할당 필요</span>Master TNS-2100 호스트·Master VM 3·Bootstrap(임시), Bastion TNS-2100(관리망 · nasbak)</td><td>Worker1(HV#02), Worker2(HV#01)</td></tr><tr><td>내부</td><td><span class="badge-ip">● IP 할당 필요</span>Master HV#03 KVM 호스트·Master VM 3·Bootstrap(임시), Bastion TNS-2100(관리망 · nasbak)</td><td>Worker1(HV#01), Worker2(HV#02)</td></tr><tr><td>공통</td><td>api · api-int · *.apps 레코드(Bastion LB 주소), IPMI 주소(신규 장비 연결 시)</td><td>기존 IP는 원 장비에서 해제한 뒤 전환 장비에 적용</td></tr></tbody></table></div>
+<p class="note"><strong>IP 상세정보는 국데처 SGIS 구성을 참조합니다.</strong><br>기존 서버의 IP 재사용 및 신규 인프라 IP 할당 내역은 내부 문서를 기준으로 확인합니다. 관리망·서비스망·nasbak망의 대역과 게이트웨이는 네트워크 담당에게 받습니다.</p>
+<h3>VM 네트워크 매핑</h3><div class="figure"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 510" role="img" aria-label="VMware 포트그룹에서 MTV NetworkMap, NAD, 브리지, bond, 스위치 포트까지의 VM 네트워크 매핑"><defs><marker id="ah-net" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#475569"/></marker></defs>
+<text x="155" y="36" text-anchor="middle" class="bold">VMware 포트그룹 (소스)</text><text x="495" y="36" text-anchor="middle" class="bold">MTV NetworkMap → NAD</text><text x="800" y="36" text-anchor="middle" class="bold">브리지 (NNCP)</text><text x="1080" y="36" text-anchor="middle" class="bold">bond (노드 NIC)</text><text x="1317" y="36" text-anchor="middle" class="bold">스위치 포트</text>
+<rect x="20" y="60" width="270" height="58" rx="6" class="box-off"/><text x="155" y="84" text-anchor="middle">MGMT · 태그 없음</text><text x="155" y="105" text-anchor="middle" class="small">DNS · vCenter VM — 이관 안 함</text>
+<rect x="20" y="140" width="270" height="58" rx="6" class="box-svc"/><text x="155" y="164" text-anchor="middle">서비스 · VLAN 130</text><text x="155" y="185" text-anchor="middle" class="small">업무 VM NIC</text>
+<rect x="20" y="220" width="270" height="58" rx="6" class="box-tbd"/><text x="155" y="244" text-anchor="middle">nasbak · VLAN 701</text><text x="155" y="265" text-anchor="middle" class="small">구형 NFS · 11월 중 사용 중단 예정</text>
+<rect x="20" y="300" width="270" height="58" rx="6" class="box-bk"/><text x="155" y="324" text-anchor="middle">nasbak · VLAN 710</text><text x="155" y="345" text-anchor="middle" class="small">업무 VM NIC</text>
+<rect x="20" y="380" width="270" height="58" rx="6" class="box-off"/><text x="155" y="404" text-anchor="middle">사용하지 않는 NIC</text><text x="155" y="425" text-anchor="middle" class="small">게스트 IP 없음 확인 후</text>
+<rect x="360" y="60" width="270" height="58" rx="6" class="box-off"/><text x="495" y="84" text-anchor="middle">ignored</text><text x="495" y="105" text-anchor="middle" class="small">대상 VM에 붙이지 않음</text>
+<rect x="360" y="140" width="270" height="58" rx="6" class="box-svc"/><text x="495" y="164" text-anchor="middle">NAD svc-130</text><text x="495" y="185" text-anchor="middle" class="small">cnv-bridge · vlan 130</text>
+<rect x="360" y="220" width="270" height="58" rx="6" class="box-tbd"/><text x="495" y="244" text-anchor="middle">NAD bk-701 (조건부)</text><text x="495" y="265" text-anchor="middle" class="small">사용 중단 완료 시 만들지 않음</text>
+<rect x="360" y="300" width="270" height="58" rx="6" class="box-bk"/><text x="495" y="324" text-anchor="middle">NAD bk-710</text><text x="495" y="345" text-anchor="middle" class="small">cnv-bridge · vlan 710</text>
+<rect x="360" y="380" width="270" height="58" rx="6" class="box-off"/><text x="495" y="404" text-anchor="middle">ignored</text><text x="495" y="425" text-anchor="middle" class="small">VM마다 판단</text>
+<rect x="700" y="140" width="200" height="58" rx="6" class="box-svc"/><text x="800" y="174" text-anchor="middle">br-svc</text>
+<rect x="700" y="220" width="200" height="138" rx="6" class="box-bk"/><text x="800" y="294" text-anchor="middle">br-bk</text>
+<rect x="970" y="140" width="220" height="58" rx="6" class="box-svc"/><text x="1080" y="164" text-anchor="middle">bond1</text><text x="1080" y="185" text-anchor="middle" class="small">서비스 2포트 · mode 1</text>
+<rect x="970" y="220" width="220" height="138" rx="6" class="box-bk"/><text x="1080" y="282" text-anchor="middle">bond2</text><text x="1080" y="306" text-anchor="middle" class="small">nasbak 2포트 · mode 1</text>
+<rect x="1250" y="140" width="135" height="58" rx="6" class="box-svc"/><text x="1317" y="174" text-anchor="middle" class="small">trunk 130</text>
+<rect x="1250" y="220" width="135" height="138" rx="6" class="box-bk"/><text x="1317" y="294" text-anchor="middle" class="small">trunk 701 · 710</text>
+<path d="M290 89 H356" class="arrow" marker-end="url(#ah-net)"/><path d="M290 169 H356" class="arrow" marker-end="url(#ah-net)"/><path d="M290 249 H356" class="arrow-tbd" marker-end="url(#ah-net)"/><path d="M290 329 H356" class="arrow" marker-end="url(#ah-net)"/><path d="M290 409 H356" class="arrow" marker-end="url(#ah-net)"/>
+<path d="M630 169 H696" class="arrow" marker-end="url(#ah-net)"/><path d="M630 249 H696" class="arrow-tbd" marker-end="url(#ah-net)"/><path d="M630 329 H696" class="arrow" marker-end="url(#ah-net)"/>
+<path d="M900 169 H966" class="arrow" marker-end="url(#ah-net)"/><path d="M900 289 H966" class="arrow" marker-end="url(#ah-net)"/>
+<path d="M1190 169 H1246" class="arrow" marker-end="url(#ah-net)"/><path d="M1190 289 H1246" class="arrow" marker-end="url(#ah-net)"/>
+<text x="20" y="490" class="small">VM 안에서는 VLAN을 설정하지 않음 · NAD의 vlan 값이 태깅 · 스위치는 bond 두 포트 모두에 같은 trunk 허용 · MAC 보존, IP는 Preserve static IPs로 유지</text>
+</svg></div>
+<div class="tablewrap"><table><thead><tr><th>소스 포트그룹</th><th>VLAN</th><th>대상 (NetworkMap)</th><th>비고</th></tr></thead><tbody><tr><td>MGMT</td><td>태그 없음</td><td>ignored</td><td>DNS·vCenter VM 전용. 이관하지 않으므로 MGMT용 NAD·브리지 불필요</td></tr><tr><td>서비스</td><td>130</td><td>NAD svc-130 → br-svc → bond1</td><td>업무 VM 서비스 NIC</td></tr><tr><td>nasbak 701</td><td>701</td><td>NAD bk-701 → br-bk → bond2 <b>(조건부)</b></td><td>구형 스토리지 NFS용, 11월 중 사용 중단 예정. 12월 이관 시점에 중단이 끝났으면 만들지 않음. 게스트 안에서 NFS를 직접 마운트하는 VM은 MTV plan에 바로 넣지 않고 사전 해제·사후 재구성 계획 수립</td></tr><tr><td>nasbak 710</td><td>710</td><td>NAD bk-710 → br-bk → bond2</td><td>업무 VM NAS·백업 NIC</td></tr><tr><td>사용하지 않는 NIC</td><td>–</td><td>ignored</td><td>VM마다 NIC 수·포트그룹 조합이 다름(2~3개). 게스트 안 IP 유무로 판단</td></tr></tbody></table></div>
+<p class="muted">NAD 이름은 예시입니다. NetworkMap은 VM이 아니라 소스 포트그룹 단위로 만들므로 NIC 수가 다른 VM도 같은 매핑을 사용합니다. 브리지는 NMState Operator의 NNCP로 노드마다 만들고 NNCP에서 VLAN을 따로 만들지 않습니다. 관리망 bond0은 노드 자체 통신용(노드 IP·기본 게이트웨이, API·Ingress·MTV 이관 443·902)으로 VM에 연결하지 않으므로 이 그림에서 제외했습니다(노드별 포트·망 구성 표 참조).</p>
+<h3>이관 방식 — VDDK</h3><div class="tablewrap"><table><thead><tr><th>항목</th><th>내용</th></tr></thead><tbody>
+<tr><td>복사 경로</td><td>vCenter·ESXi 443·902(관리망) 경유 네트워크 복사</td></tr>
+<tr><td>준비</td><td>vSphere 8 대응 VDDK 패키지로 이미지 빌드 → Bastion 미러 레지스트리 반입 → 망별 vSphere Provider에 지정</td></tr>
+<tr><td>콜드 / 웜</td><td>콜드 이관 기본. 웜 이관은 CBT·VMware Tools 필요</td></tr>
+<tr><td>Plan 단위</td><td>동시 이관 최대 10대(초기 상한) · 시험 이관 후 조정</td></tr>
+<tr><td>IP 유지</td><td>Preserve static IPs(VMware Tools 필요)</td></tr>
+<tr><td>Windows VM</td><td>변환 시 VirtIO 드라이버 주입 · 시험 이관에서 부팅·네트워크 먼저 확인</td></tr>
+</tbody></table></div>
+<h4>가정 속도별 순수 데이터 전송 시간</h4><div class="tablewrap"><table><thead><tr><th>가정한 지속 전송 속도</th><th>외부망 12.4TB</th><th>내부망 62.3TB</th><th>해석</th></tr></thead><tbody><tr><td>100 MB/s</td><td>약 1.4일</td><td>약 7.2일</td><td>저속 시나리오</td></tr><tr><td>400 MB/s</td><td>약 8.6시간</td><td>약 1.8일</td><td>중간 시나리오</td></tr><tr><td>1,000 MB/s</td><td>약 3.4시간</td><td>약 17.3시간</td><td>고속 시나리오</td></tr></tbody></table></div>
+<p class="muted">10진수 TB를 기준으로 가정 속도가 중단 없이 유지된다고 계산한 데이터 복사 시간이며, 실제 측정값이나 전체 이관 소요 시간이 아닙니다. VDDK 네트워크 복사 속도는 시험 이관에서 측정합니다. VM 사전 검사·서비스별 작업 순서와 대기·기동·업무 검증·재시도·작업 가능 시간은 포함하지 않습니다. 특히 cold 이관은 전송 시간과 기동·검증을 합친 시간이 서비스 중단 시간에 반영됩니다.</p>
+<h3>스토리지 엔지니어 요청 작업</h3><div class="tablewrap"><table><thead><tr><th>시점</th><th>대상 장비</th><th>요청 작업</th><th>확인 기준</th></tr></thead><tbody>
+<tr><td>2차 재구성 · 11월<br><small>OS 재설치 전</small></td><td>외부 HV#02 (Worker1)<br>내부 HV#01 (Worker1) · HV#03 (Master KVM)</td><td>VMFS LUN 매핑 해제</td><td>해당 호스트에서 LUN 미노출, 원본 HV의 LUN 접근 유지</td></tr>
+<tr><td>MTV 이관 · 원본 보관 기간</td><td>외부 HV#01 · 내부 HV#02 (MTV 원본)</td><td>원본 VMFS LUN·데이터스토어 매핑 유지 (변경 없음)</td><td>원본 데이터스토어 정상</td></tr>
+<tr><td>Worker2 전환 전 · 12월 말<br><small>조건부</small></td><td>외부 HV#01 · 내부 HV#02</td><td>VMFS LUN 매핑 해제</td><td>해당 호스트에서 LUN 미노출</td></tr>
+<tr><td>보관·원복 기준 충족 후</td><td>원본 VMFS LUN·데이터스토어</td><td>회수 (Worker2 전환과 별도 판단 · 일정 협의)</td><td>회수 승인 후 진행</td></tr>
+</tbody></table></div>
+<p class="muted">LUN 매핑 해제는 OS 재설치 시 원본 LUN을 설치 디스크로 잘못 선택하지 않도록 하기 위한 작업입니다. 재활용 TNS-2100(Bastion · 외부 Master)은 FC에 연결하지 않습니다.</p></section>
+<section id="procedure"><h2>05. 단계별 수행 계획</h2>
+<div class="tablewrap"><table><thead><tr><th>단계</th><th>작업 내용</th><th>진행 전 확인 / 완료 기준</th></tr></thead><tbody><tr><td>1. 사전작업·현황·백업 확보<br><small>1차 · 10월</small></td><td>행정작업, 장비 재배치(TNS-2100 랙 설치), 전기 포설, 관리·IPMI 포트 결선. VM별 OS·NIC·포트그룹·부팅 방식·디스크 기록, VM 백업. VMware Tools 미설치 VM에 Tools 설치, 스냅샷 정리. 미러 이미지(OCP·OpenShift Virtualization·NMState·MTV·VDDK) 반입 준비</td><td>TNS-2100 전원·관리 포트 연결 확인, VM별 기록·백업 완료, VLAN 701 사용 VM 식별, 콘솔 접근 확보</td></tr><tr><td>2. Bastion·DNS 사전 준비<br><small>2차 · 11월</small></td><td>외부·내부 재활용 TNS-2100에 Bastion을 먼저 구축합니다. DNS·LB·NTP·미러 레지스트리를 준비하고 기존 DNS 설정과 HV·vCenter 레코드를 이관합니다. DNS 질의와 레지스트리 접근이 정상인지 확인한 뒤 기존 DNS VM은 확인 전까지 보관합니다.</td><td>미러 이미지 조회, DNS 정·역방향 조회, API·Ingress LB 기본 점검, 신규 IP 확인</td></tr><tr><td>3. Bastion DNS 전환·검증</td><td>DNS VM(외부 HV#02·내부 HV#03)은 MTV 대상에서 제외합니다. 각 망의 Bastion에 DNS 서비스를 구축하고 기존 DNS 설정과 HV·vCenter 레코드를 이관합니다. 질의와 vCenter·ESXi 관리 연결을 검증한 뒤 기존 DNS VM을 종료·보관하고, DNS VM이 있던 HV를 재구성합니다. DNS 설정 백업과 원복 절차를 확보합니다.</td><td>Bastion DNS 설정·레코드 이관 및 질의 검증 완료, 원본 DNS VM 종료·보관, 외부 HV#02·내부 HV#01·HV#03의 vCLS 정리 확인</td></tr><tr><td>4. 비운 HV 초기화 준비</td><td>외부 HV#02, 내부 HV#01·HV#03의 설정 백업 → vCenter에서 호스트 제거(VMware 엔지니어) → <b>VMFS LUN 매핑 해제(스토리지 엔지니어)</b>. 이 단계에서는 OS를 설치하지 않습니다.</td><td>원본 HV의 LUN 접근 유지, 재구성 대상 HV에서 LUN 미노출, 기존 IP·설정 기록</td></tr><tr><td>5. Master KVM 호스트 구성</td><td>외부 TNS-2100 / 내부 HV#03에 RHEL 9.8 + KVM 설치, bond0(관리 2포트, mode 1) 위에 브리지 br0 구성</td><td>KVM 호스트 자원(VM 3식+Bootstrap), etcd용 SSD/NVMe, CPU 오버커밋 없음</td></tr><tr><td>6. Bootstrap·Master 설치</td><td>Bootstrap 임시 VM과 Master VM 3식에 RHCOS·Ignition 적용 → Bootstrap 완료 후 Bootstrap VM 삭제·LB 제외</td><td>etcd 정상(3 member), API 응답, etcd fsync 지연 확인, 첫 etcd 백업</td></tr><tr><td>7. Worker1 편입</td><td>외부 HV#02 / 내부 HV#01에 RHCOS 설치(설치 디스크 <code>/dev/disk/by-id</code> 지정, bond0 관리망) → CSR 승인 → 노드 편입</td><td>노드 Ready, ClusterOperator 정상</td></tr><tr><td>8. 클러스터 기반 구성</td><td>OpenShift Virtualization, NMState(NNCP로 bond1·bond2, br-svc·br-bk), NAD svc-130·bk-710(bk-701은 조건부)</td><td>NAD 연결 VM 통신</td></tr><tr><td>9. MTV 준비·시험 이관</td><td>MTV 2.12 설치, 망별 vSphere Provider(VDDK 이미지 지정), NetworkMap·StorageMap 구성, 대표 VM 시험 이관으로 VDDK 실효 전송 속도와 VM별 사전 검사부터 업무 검증까지 전체 소요 시간 기록, BIOS VM 부팅·IP 유지 확인</td><td>OCP 노드 → vCenter·ESXi 443·902 연결, MTV 권한, 속도·VM별 전체 시간·서비스 의존성·허용 작업창으로 회차 일정 재산정</td></tr><tr><td>10. 회차별 본 이관<br><small>3차 · 12/1~12/11</small></td><td><b>외부망(11대) 먼저 → 내부망(24대)</b>. 회차별 대상 선정 → 사전 검사 → 게스트 안에서 정상 종료 → 이관(최대 동시 이관 10대(초기 상한, 시험 결과에 따라 조정), Preserve static IPs) → 대상 기동 → NIC·디스크 보정 → 업무 검증 → OS TAR 백업 수동 실행(이관 후 기준 백업)</td><td>동일 서비스 원본·대상의 동시 활성화 방지, 회차별 성공·실패·재작업 기록</td></tr><tr><td>11. 안정화·전환 판단<br><small>12/14~12/23</small></td><td>업무 모니터링, 백업 정상 확인, 원본 VM 전원 종료 보관</td><td><b>이관 완료 후 최소 1주 무장애 + 원복 요청 없음 + 백업 복구 시험 통과 + 업무 담당 확인</b></td></tr><tr><td>12. Worker2 편입<br><small>12/24~12/30</small></td><td>외부 HV#01 / 내부 HV#02: vCenter VM 종료 확인 → VMFS LUN 매핑 해제 → RHCOS 설치 → CSR 승인 → Worker2 편입, 기존 IP 재사용, NNCP·NAD 적용</td><td>노드·네트워크 정상, Live Migration 검증</td></tr><tr><td>13. 완료 기록<br><small>12/31</small></td><td>최종 구성·IP·VM 이관 결과 및 잔여 작업 정리</td><td>MTV 완료, OS 기동, 디스크·네트워크·업무·백업 정상 확인 및 합의된 검수 항목 충족, 결과서 갱신</td></tr></tbody></table></div>
+<p class="note">설치는 <b>Bastion → Master KVM 호스트 → Bootstrap·Master VM → Worker1</b> 순서로만 진행할 수 있습니다. 내부망 Bastion은 재활용 TNS-2100에 먼저 구축하므로 HV#03의 DNS 이전·재구성과 병행할 수 있습니다. 외부망에서 MTV 절차·반입 절차·소요 시간을 먼저 검증한 뒤 내부망에 적용합니다. 작업 명령, 수행일 및 소요 시간은 상세 작업 절차서에 반영합니다.</p>
+<h3>폐쇄망 UPI 설치 절차</h3><div class="tablewrap"><table><thead><tr><th>단계</th><th>작업 내용</th></tr></thead><tbody><tr><td>1. 사전 준비</td><td>Bastion에 설치 도구와 CLI를 준비하고 DNS·NTP·API/Ingress 로드밸런서 및 네트워크를 구성합니다. 외부 TNS-2100 및 내부 HV#03에 RHEL 9.8·KVM·브리지를 구성합니다.</td></tr><tr><td>2. 폐쇄망 미러 구성</td><td>필요한 OCP·OpenShift Virtualization·NMState·MTV·VDDK 이미지를 <b>Bastion의 미러 레지스트리</b>에 망별로 반입하고 인증서·인증·미러 설정을 준비합니다.</td></tr><tr><td>3. 설치 설정 생성</td><td>클러스터 구성과 미러 정보를 반영하여 설치 설정 및 Bootstrap·Master·Worker용 Ignition 파일을 생성합니다.</td></tr><tr><td>4. Bootstrap 및 노드 설치</td><td>Master KVM 호스트에 Bootstrap 임시 VM과 Master VM 3식을 생성하여 RHCOS와 해당 Ignition을 적용합니다. 이어서 Worker1(외부 HV#02 · 내부 HV#01)에 RHCOS를 설치합니다. MTV 원본 HV(외부 HV#01 · 내부 HV#02)는 최초 설치 대상에서 제외합니다.</td></tr><tr><td>5. Bootstrap 완료 확인</td><td>Bootstrap 완료를 확인한 뒤 로드밸런서에서 Bootstrap 대상을 제거하고 Bootstrap VM을 삭제합니다.</td></tr><tr><td>6. 클러스터 완료 검증</td><td>노드·CSR·ClusterOperator 상태와 API·콘솔·미러 접근을 확인합니다. 이후 가상화·NMState·MTV를 구성합니다.</td></tr><tr><td>7. 안정화 후 Worker2 편입</td><td>원본 보관·원복 조건을 확인한 뒤 원본 HV(외부 HV#01 · 내부 HV#02)에 신규 노드용 설정을 적용하고 Worker2로 편입합니다.</td></tr></tbody></table></div><p class="muted">설치 방식은 UPI(<code>platform: none</code>)로 확정합니다. Master는 KVM VM 3식, Bootstrap은 같은 KVM 호스트의 임시 VM입니다. 재설치 전 VMFS LUN 매핑을 해제하고 설치 디스크는 by-id로 지정하여 원본 데이터를 보존합니다.</p><h3>VM별 사전 점검 및 시험 이관</h3><p>대상 VM의 가상 하드웨어 및 게스트 설정 변경에 대비하여 아래 항목을 조사합니다. 해당 항목의 사용 여부를 먼저 확인하고, 적용할 MTV·OpenShift Virtualization 버전의 지원 조건에 따라 처리합니다. 확인 결과는 미확인 / 해당 없음 / 적합 / 조치 필요로 구분하여 기록합니다.</p><div class="tablewrap"><table><thead><tr><th>점검 항목</th><th>사전 조사·준비</th><th>시험 이관 및 조치 기준</th></tr></thead><tbody><tr><td>OS·커널 및 지원 조합</td><td>OS·커널·아키텍처와 적용 MTV·가상화 버전의 지원 여부를 확인합니다.</td><td>주요 OS 유형별 대표 VM을 선정하여 변환·기동 결과를 확인합니다.</td></tr><tr><td>부팅 방식·VirtIO 드라이버</td><td>BIOS/UEFI, 부팅 디스크와 드라이버 상태를 기록하고 콘솔·복구 접근을 확보합니다.</td><td>부팅 및 디스크·NIC 인식 결과를 확인하고 OS별 보정 절차를 작성합니다.</td></tr><tr><td>디스크·마운트</td><td>디스크별 용량·용도, Linux fstab·UUID·LVM, Windows 드라이브 문자를 기록합니다.</td><td>데이터 디스크 누락, 마운트 및 애플리케이션 경로 변경 여부를 확인합니다.</td></tr><tr><td>게스트 내부 NFS·iSCSI</td><td>VLAN 701(구형 스토리지)을 게스트 안에서 NFS로 직접 마운트하는 VM과 마운트 대상, 접근 허용 IP를 확인합니다.</td><td>MTV는 이런 VM을 plan에 바로 넣지 않도록 안내하므로 사전 해제 또는 이관 후 재구성 절차를 정합니다.</td></tr><tr><td>NIC·IP·라우팅</td><td>NIC별 이름·MAC·Port Group·VLAN·IP/Prefix, 게이트웨이·DNS·정적 경로·MTU를 기록하고 설정을 백업합니다.</td><td>NetworkMap과 실제 대상 NIC를 대조합니다. 이름 또는 순서만으로 서비스망·NAS/BK망을 판단하지 않습니다.</td></tr><tr><td>암호화·보안 부팅</td><td>Secure Boot·vTPM·BitLocker·LUKS 사용 여부와 지원 절차를 확인합니다. 복구 키는 승인된 보관 위치에 확보합니다.</td><td>해당 기능을 사용하는 VM은 적용 버전의 지원 절차를 검증합니다. 보고서에는 비밀 키를 기재하지 않습니다.</td></tr><tr><td>게스트 도구·에이전트</td><td>VMware Tools, QEMU Guest Agent, 보안·백업·모니터링 에이전트 현황을 기록합니다.</td><td>변환 후 도구 처리 결과와 대상 에이전트 설치·동작을 확인합니다. VMware Tools 사전 제거를 일괄 지시하지 않습니다(virt-v2v가 이관 중 제거). Tools 미설치 VM은 정상 종료·vNIC 정보 보고를 위해 이관 전에 설치합니다.</td></tr><tr><td>스냅샷·웜 이관 조건</td><td>기존 스냅샷, CBT 상태 및 필요한 여유 공간을 확인합니다. Windows 웜 이관은 VSS 등 사전 조건을 확인합니다.</td><td>사전 복사와 최종 변경분 반영이 정상 완료되는지 확인합니다.</td></tr><tr><td>라이선스·시간·서비스</td><td>하드웨어 정보 종속 라이선스, DNS·시간 동기화, 서비스 자동 기동·배치와 외부 연계를 조사합니다.</td><td>재인증·재등록 필요 여부와 실제 업무 동작을 확인합니다.</td></tr><tr><td>Worker1 수용 능력</td><td>망별 Worker1 단독 운영 기간의 CPU·메모리를 확인합니다(03장 수용 용량).</td><td>이관 복사와 운영 I/O가 겹치는 조건에서 응답시간·디스크 지연을 확인하고 회차·동시 이관 수를 결정합니다.</td></tr></tbody></table></div><p class="muted">시험 대상은 주요 OS, 다중 NIC, 다중 디스크 및 보안·암호화 등 특수 구성을 포함하여 선정합니다. 보정 소요 시간과 허용 기준은 시험 결과를 근거로 회차별 작업계획에 반영합니다.</p>
+<h3>VM 인터페이스 변경 대응 절차</h3><div class="tablewrap"><table><thead><tr><th>순서</th><th>수행 내용</th></tr></thead><tbody><tr><td>1. 사전 기록·백업</td><td>VM별 NIC 매핑표와 IP·경로 정보를 확보하고 게스트 네트워크 설정을 백업합니다.</td></tr><tr><td>2. 이관·전환</td><td>원본 VM 종료와 최종 데이터 반영 이후 대상 VM을 운영망에서 기동합니다. 동일 IP의 원본·대상이 동시에 활성화되지 않도록 합니다.</td></tr><tr><td>3. 콘솔 확인</td><td>대상 VM 콘솔에서 NIC 이름·MAC·IP 적용 상태를 확인하고 NetworkMap 및 사전 기록과 대조합니다.</td></tr><tr><td>4. 설정 보정</td><td>필요한 경우 이름·MAC에 종속된 설정을 올바른 대상 NIC에 연결합니다. 기존 IP를 유지하는 계획에 따라 IP·게이트웨이·경로를 보정합니다.</td></tr><tr><td>5. 검증·판단</td><td>서비스·NAS/BK망별 통신과 업무를 확인합니다. 보정이 지연되는 경우 합의한 원복 기준에 따라 조치합니다.</td></tr></tbody></table></div><h3>VM별 NIC 매핑표 양식</h3><div class="tablewrap"><table><thead><tr><th>VM명</th><th>용도</th><th>기존 NIC / MAC</th><th>기존 Port Group / VLAN</th><th>IP 상세정보</th><th>대상 NetworkMap·네트워크</th><th>이관 후 NIC / MAC</th></tr></thead><tbody><tr><td>기입</td><td>서비스망</td><td>기입</td><td>기입</td><td>국데처 SGIS 구성 참조</td><td>기입</td><td>이관 후 확인</td></tr><tr><td>기입</td><td>NAS/BK망</td><td>기입</td><td>기입</td><td>국데처 SGIS 구성 참조</td><td>기입</td><td>이관 후 확인</td></tr></tbody></table></div><p class="muted">게이트웨이, DNS, 정적 경로 및 MTU는 VM별 상세 기록에 함께 보관합니다. 기존 물리 NIC·케이블·스위치 연결은 유지하며, 재구성한 노드의 설정과 VM 망 매핑을 기존 연결 조건에 맞춰 검증합니다.</p>
+<h3>이관 방식별 서비스 전환 순서</h3><div class="tablewrap"><table><thead><tr><th>방식</th><th>작업 순서</th></tr></thead><tbody><tr><td>콜드 이관 <small>기본</small></td><td>게스트 안에서 원본 VM 정상 종료 → 데이터 복사(VDDK)·변환 → 대상 VM 기동 → 네트워크·업무 검증</td></tr><tr><td>웜 이관 <small>VDDK</small></td><td>원본 운영 중 사전 복사 → 전환 시 원본 VM 종료 → 최종 변경분 복사·변환 → 대상 VM 기동 → 네트워크·업무 검증. CBT·VMware Tools가 필요합니다.</td></tr></tbody></table></div><p class="muted">MTV의 원본 종료 및 대상 기동 동작은 적용 버전과 계획 설정을 사전에 확인합니다. 원본 VM은 전원 종료 상태로 보관하며, 보관·원복 기준 충족 후 정리합니다.</p><h3>회차별 이관 관리표</h3><div class="tablewrap"><table><thead><tr><th>회차</th><th>예정일</th><th>망</th><th>대상 VM</th><th>방식</th><th>검증 결과</th><th>상태</th></tr></thead><tbody><tr><td>시험</td><td>미정</td><td>외부 / 내부</td><td>선정 필요</td><td>미정</td><td>미수행</td><td>계획</td></tr><tr><td>본 이관 1차</td><td>미정</td><td>선정 필요</td><td>선정 필요</td><td>미정</td><td>미수행</td><td>계획</td></tr><tr><td>추가 회차</td><td>미정</td><td>선정 필요</td><td>선정 필요</td><td>미정</td><td>미수행</td><td>필요 시 추가</td></tr></tbody></table></div></section>
+<section id="verify"><h2>06. 검증 및 복구 계획</h2>
+<div class="tablewrap"><table><thead><tr><th>검증 구분</th><th>확인 항목</th><th>결과 기록</th></tr></thead><tbody><tr><td>빈 HV 정리</td><td>DNS VM 이동 후 이름 해석, 재구성 대상 HV의 VM 잔존 여부, vCenter·업무 VM 정상</td><td>작업 전후 비교</td></tr><tr><td>Bastion·미러</td><td>미러 레지스트리 이미지 조회, DNS·LB 동작, Bastion 백업</td><td>구축 결과</td></tr><tr><td>Master KVM·etcd</td><td>Master VM 3식 상태, etcd member 3 정상, fsync 지연(10ms 이하), etcd 백업을 Bastion에서 수집해 NAS/BK망으로 통합 백업스토리지에 주기 보관</td><td>구축 결과</td></tr><tr><td>OpenShift</td><td>노드 상태, 플랫폼 구성요소 상태, DNS·NTP, 관리 접근</td><td>구축 결과</td></tr><tr><td>네트워크</td><td>bond0·1·2 mode 1 장애 전환, 스위치 trunk(130·701·710), NAD별 VM 통신, 관리망 게이트웨이·경로</td><td>연결 확인 결과</td></tr><tr><td>스토리지 (원본)</td><td>원본 FC LUN·VMFS 데이터스토어 정상 유지, 재구성 HV의 LUN 미노출</td><td>스토리지 엔지니어 확인 결과</td></tr><tr><td>MTV 연결</td><td>OCP 노드 → vCenter·ESXi 443·902, Provider 인벤토리, 시험 이관 전송 속도(MB/s)</td><td>시험 이관 결과</td></tr><tr><td>VM 이관</td><td>부팅(BIOS), 디스크·NIC, IP 유지, 시간 동기화, 애플리케이션·데이터 정합성</td><td>VM별 검증표</td></tr><tr><td>Worker2 추가</td><td>노드 편입, 네트워크, Live Migration 검증</td><td>최종 구성 결과</td></tr></tbody></table></div>
+<h3>VM별 이관 완료 점검표</h3><p>MTV 작업 성공과 OS 부팅만으로 완료 처리하지 않습니다. 아래 항목의 적용 여부와 결과를 기록하고, 사전에 정한 업무 검증 기준을 충족한 후 이관 완료로 판단합니다.</p><div class="tablewrap"><table><thead><tr><th>검증 항목</th><th>완료 확인 기준</th><th>결과 / 근거</th></tr></thead><tbody><tr><td>기동·디스크</td><td>정상 부팅, 대상 디스크·용량·마운트·드라이브 문자 및 데이터 경로를 확인합니다.</td><td>미수행</td></tr><tr><td>NIC·IP·경로</td><td>NIC별 연결망, IP·게이트웨이·DNS·정적 경로·MTU 및 원본과의 주소 중복 여부를 확인합니다.</td><td>미수행</td></tr><tr><td>업무·DB·망 연계</td><td>서비스 자동 기동, 대표 업무 처리, 기존 DB 접속과 망 연계 송수신을 확인합니다. DB 레거시 풀은 재구성하지 않습니다.</td><td>미수행</td></tr><tr><td>시간·라이선스·보안</td><td>시간 동기화, 라이선스 유효성 및 보안 에이전트 동작을 확인합니다.</td><td>미수행</td></tr><tr><td>게스트 에이전트·운영 연동</td><td>게스트 에이전트, 모니터링 수집·알람 및 적용 가능한 백업 작업의 정상 완료를 확인합니다.</td><td>미수행</td></tr><tr><td>OS 기준 백업</td><td>이관 직후 OS 영역 TAR 백업 스크립트를 수동 실행하여 정상 완료와 백업 파일 생성을 확인합니다. 이관 전 백업에는 virtio 드라이버가 없으므로 이 백업을 이관 후 OS 복구 기준점으로 사용합니다.</td><td>미수행</td></tr><tr><td>성능·정합성</td><td>이관 전후 응답시간·디스크 지연과 합의한 데이터 정합성 기준을 확인합니다.</td><td>미수행</td></tr><tr><td>원본 보관·복구</td><td>원본 VM 전원 종료·보관 상태와 대상 쓰기 발생 후 복구 방법을 확인합니다.</td><td>미수행</td></tr></tbody></table></div><p class="muted">검증 결과는 VM별로 정상 / 조치 필요 / 해당 없음으로 구분하고, 확인 시각·근거·조치 내역을 기록합니다. 미수행 항목을 정상으로 처리하지 않습니다.</p><h3>단계별 원복 방향</h3><div class="tablewrap"><table><thead><tr><th>시점</th><th>원복 방향</th><th>선행 조건</th></tr></thead><tbody><tr><td>빈 HV 정리·구축 단계</td><td>작업 중단 후 확보한 설정·백업을 기준으로 원래 구성을 복구</td><td>재구성한 장비는 즉시 되돌릴 수 없으므로 복구 매체·절차 확보</td></tr><tr><td>MTV 이관 후 / 원본 HV 보존 중</td><td>대상 VM 정지·격리 후 원본 VM 재가동 여부 판단</td><td>전환 후 쓰인 데이터의 정합성과 역반영·복구 방법 확인. 원본 재기동 전 데이터 정합성 검증 필요</td></tr><tr><td>원본 HV를 Worker2로 전환한 후</td><td>백업과 합의한 복구 환경을 사용해 복구</td><td>원본 VMware 호스트가 없어지는 시점이므로 별도 복구 경로 확보</td></tr><tr><td>Master KVM 호스트 장애</td><td>KVM 호스트 복구 후 Master VM 재기동, 필요 시 etcd 백업으로 Control Plane 복구</td><td>etcd 백업은 Bastion이 NAS/BK망으로 통합 백업스토리지에 정기 보관하고 복구 절차를 사전 시험</td></tr></tbody></table></div>
+<h3>주요 위험 및 대응</h3><div class="tablewrap"><table class="risk"><thead><tr><th>위험</th><th>영향</th><th>대응</th></tr></thead><tbody><tr><td>Master KVM 단일 호스트</td><td>호스트 장애·패치 재부팅 시 Master VM 3식 동시 중단 → API·VM 관리 중단 (운영 VM은 Worker에서 계속 동작)</td><td>etcd 정기 백업을 NAS/BK망 통합 백업스토리지에 보관, Master VM 디스크 백업 및 복구 절차 시험, 여유분 TNS-2100을 예비 호스트로 지정 검토</td></tr><tr><td>Master 구성 지원 범위</td><td>KVM은 Red Hat 시험 구성 목록에서 Not Tested, 문서는 머신별 별도 물리 호스트 권고 → 장애 시 지원이 제한될 수 있음</td><td>Red Hat 문의 없이 진행하는 결정임을 고객사와 공유, 백업·복구 절차를 설치 직후 준비</td></tr><tr><td>etcd 디스크 성능</td><td>VM 3식이 같은 호스트 디스크를 공유하여 지연 시 클러스터 불안정</td><td>SSD/NVMe, 가능하면 VM별 디스크 분리, 설치 후 fsync 지연 측정</td></tr><tr><td>VDDK 전송 속도</td><td>관리망 경유 네트워크 복사 속도에 따라 내부망 62.3TB 이관이 12/11을 넘길 수 있음</td><td>11월 시험 이관에서 속도 측정 후 회차·동시 이관 수 재산정</td></tr><tr><td>Worker1 단독 운영 기간</td><td>Live Migration 불가, 노드 재부팅 시 이관된 VM 전체 중단, 내부망 메모리 사용 약 82%</td><td>이관 기간 OCP 업데이트·MachineConfig 변경 동결, 재부팅이 필요한 작업은 사전 공지</td></tr><tr><td>FC LUN 노출</td><td>재설치 시 VMFS LUN을 설치 디스크로 오인하여 원본 손상</td><td>LUN 매핑 해제 후 설치, by-id 지정, 설치 전 디스크 목록 대조</td></tr><tr><td>VLAN 701 NFS VM</td><td>게스트 안에서 구형 스토리지 NFS를 마운트하는 VM은 중단 전 이관 시 접근 실패</td><td>701 사용 VM 식별, 11월 중단 완료 확인 후 이관 또는 NAD bk-701 유지, 해당 VM은 별도 plan</td></tr><tr><td>Bastion DNS 전환</td><td>이름 해석 중단 시 vCenter·ESXi 관리와 MTV 접속 영향</td><td>각 망 Bastion에 DNS 서비스를 구축하고 기존 설정·레코드를 이관합니다. 이름 조회와 vCenter·ESXi 관리 연결을 검증한 뒤 기존 DNS VM을 종료·보관하고 대상 HV를 재구성합니다.</td></tr><tr><td>VMware Tools 미설치 VM</td><td>정상 종료 불가·vNIC 정보 미보고로 IP 유지 경고</td><td>이관 전 Tools 설치, 게스트 IP·게이트웨이·DNS 사전 기록, 게스트 안에서 직접 종료</td></tr><tr><td>12월 일정 지연</td><td>안정화 기간 부족 상태에서 원본 HV 전환</td><td>12/11까지 이관 미완료 시 안정화 기간을 줄이지 않고 Worker2 전환을 1월로 이연</td></tr></tbody></table></div>
+<p class="muted">원복 판단 기준, 결정 시점, 원본 보관 기간, 데이터 복구 방법 및 최종 검수 조건은 협의 후 확정합니다. 업무 VM이 있던 HV를 Worker2로 전환하는 작업은 MTV 이관·검증 완료 후 최소 1주 무장애, 원복 요청 없음, 백업 복구 시험 통과, 업무 담당 확인을 모두 충족한 경우에 진행합니다. 원본 HV의 Worker2 전환과 원본 LUN·데이터스토어 회수는 별도 판단 항목이며, 원본 공간은 보관·원복 기준 충족 후 회수합니다.</p></section>
+<section id="schedule"><h2>07. 추진 일정 및 사전 확정 사항</h2>
+<div class="tablewrap"><table><thead><tr><th>차수</th><th>시기</th><th>작업</th></tr></thead><tbody><tr><td>1차 사전작업</td><td>2026년 10월</td><td>행정작업, 장비 재배치, 전기 포설, 현황 조사·백업, VMware Tools 설치, 미러 이미지 반입 준비</td></tr><tr><td>2차 재구성</td><td>2026년 11월</td><td>Bastion(관리망)·DNS·미러 레지스트리·LB 구축 → 기존 DNS 설정·레코드 이관·검증 → 원본 DNS VM 종료 → 대상 HV 정리·초기화 → Master KVM·VM → Worker1 → Virtualization·NMState·MTV 구성, 시험 이관·VDDK 실효 속도 및 VM별 전체 작업시간 측정</td></tr><tr><td>3차 MTV</td><td>2026년 12월 (계획 구간, 시험 결과에 따라 조정)</td><td>실측 기반 서비스별 회차 이관(외부망 → 내부망) → 검증·재시도 여유 → 안정화 → Worker2 편입 → 최종 검증 · <b>12월 말 종료 목표</b></td></tr></tbody></table></div>
+<h3>12월 상세 일정(계획 구간)</h3><div class="tablewrap"><table><thead><tr><th>기간</th><th>계획 작업</th><th>진행 조건·일정 조정 기준</th></tr></thead><tbody><tr><td>12/1 ~ 12/11 (잠정)</td><td>외부망 → 내부망 순서로 서비스 그룹별 본 이관. VM 개수가 아니라 디스크 사용량·서비스 의존성·허용 중단 시간을 기준으로 회차를 편성합니다. 동시 10대 이하는 초기 상한으로 두고 시험 결과에 따라 조정합니다.</td><td>11월 시험 이관에서 VDDK 실효 속도와 사전 검사·전송·기동·업무 검증 시간을 측정하고, 서비스별 작업창과 재시도 여유를 반영해 12월 일정을 재산정합니다.</td></tr><tr><td>12/14 ~ 12/23 (잠정)</td><td>안정화: 업무 모니터링, 백업 정상 확인, 원본 VM 전원 종료 보관</td><td>실제 이관 종료 후 최소 1주 무장애, 원복 불필요 판단</td></tr><tr><td>12/24 ~ 12/30 (조건부)</td><td>원본 HV → Worker2 편입 (외부 HV#01 · 내부 HV#02)</td><td>이관·검증·안정화 조건 충족 후 진행. 지연 시 안정화 기간을 줄이지 않고 2027년 1월 이후로 이연합니다.</td></tr><tr><td>12/31 (목표)</td><td>최종 검증·결과서</td><td>실측 기반 일정 및 선행 작업 결과에 따라 조정</td></tr></tbody></table></div>
+<p class="muted">04장 전송 시간 표의 시간은 연속 데이터 전송만 계산한 값입니다. 서비스별 순차 처리, 업무 중단 가능 시간, 기동·검증, 작업자 대기 및 실패 후 재시도를 포함하지 않으므로 전체 이관 일정으로 직접 사용하지 않습니다. 실제 여유 기간은 11월 시험 이관에서 측정한 회차별 전체 작업시간을 합산해 확보합니다. 12/25 휴일과 연말 작업 가능일도 반영하며, 일정이 밀리면 Worker2 전환을 이연하고 안정화·원복 확인 기간은 유지합니다. 원본 LUN·데이터스토어 회수는 Worker2 전환과 별도로 판단합니다.</p>
+<h3>실행 전 확정 항목</h3><ul><li><b>스토리지 엔지니어</b>: 04장 요청 작업 일정 — 재구성 HV(외부 HV#02, 내부 HV#01·HV#03)와 Worker2 전환 HV(외부 HV#01, 내부 HV#02)의 VMFS LUN 매핑 해제, 원본 LUN·데이터스토어 보관·회수 시점</li><li><b>VMware 엔지니어</b>: vSphere 정확한 버전(SDDC Manager 사용 여부), 호스트 제거 방법, MTV용 vSphere 역할·계정 권한, VDDK 패키지(vSphere 8 대응)</li><li><b>네트워크 담당</b>: 관리망·서비스망·nasbak망 대역·게이트웨이, 망별 신규 IP 7개, 스위치 trunk 허용 VLAN(130·701·710)과 대기 포트 설정, TNS-2100 NIC 10G, OCP 노드 → vCenter·ESXi 443·902 경로, Bastion NAS/BK 포설·nasbak VLAN, NTP 서버 IP·방화벽, MTU</li><li><b>작업 담당·고객사</b>: VLAN 701 사용 VM과 11월 중단 일정, 무중단(warm) 필요 VM과 다운타임 창, VMware Tools 미설치 VM 목록, 게스트 OS 버전(Windows Server 2012 R2 등 구형)</li><li>Master 호스트(외부 TNS-2100·내부 HV#03)의 Master VM 3식 + Bootstrap 수용 사양(약 28~32 vCPU, 112~128GB, SSD/NVMe), etcd 디스크, 관리 포트·IPMI 연결</li><li>외부·내부 Bastion(TNS-2100)의 미러 레지스트리 형태(mirror registry for Red Hat OpenShift 또는 Red Hat Quay), NAS/BK 포설 및 백업스토리지 연결, 디스크 용량(약 358GB 이상, 1TB 권장)</li><li>KVM 호스트·Bastion RHEL 구독 및 OVE 구독 범위</li><li>DNS VM이 HV·vCenter 외 업무 서비스에서 사용되지 않는지 확인, Bastion DNS 설정·레코드 이관, 이름 조회·관리 연결 검증 및 원본 DNS VM 종료 기준</li><li>OCP·RHCOS·가상화 기능·MTV의 지원 조합 및 실제 하드웨어 호환성</li><li>시험 대상·회차별 VM, 검증·원복·원본 보관 및 완료 기준</li></ul>
+<p class="muted">본 검토본의 관리 범위는 장비 구성, 네트워크, 이관 절차 및 스토리지 요청 작업입니다.</p></section>
+<footer>기술 검토 참고: <a href="https://redhat.com/en/blog/storage-processing-accelerates-vm-migrations-migration-toolkit-virtualization-212">MTV 2.12 발표(OCP 4.22 대응)</a>, <a href="https://docs.redhat.com/en/documentation/migration_toolkit_for_virtualization/">Red Hat MTV 문서</a>. 사업 적용 버전은 구축 전 확정합니다.<br>작성 근거: 국데처 SGIS OpenShift 구축설계서 v1.6, 국데처MTV 사업 마크다운, 2026-10-12까지의 사용자 정정 및 현장 실사 정보(VMware→OCP 마이그레이션 설계 페이지, 2026-10-12 갱신). 표현 참고: ocp418-podonly-topology-v0.5.html의 VM 풀.<br>문서는 계획 검토 단계입니다. 수행 및 검증 결과는 후속 작업 결과서에 기록합니다.</footer>
+</main></body></html>

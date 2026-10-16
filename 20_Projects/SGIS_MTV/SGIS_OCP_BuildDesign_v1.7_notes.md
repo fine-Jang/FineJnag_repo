@@ -31,8 +31,16 @@ v1.6s([릴리스 기록](SGIS_OCP_BuildDesign_v1.6s_notes.md))에서 기존 VMwa
    - 1단계 DNS 항목에 vCenter·원본 ESXi A 레코드와 조회 확인 추가.
    - 2단계 "기존 DNS 이관" → "DNS VM 이동": 원본 HV로 이동(vMotion) / 이동 후 vCenter·ESXi 이름 해석 확인.
    - 9단계 Worker2 전환에 "DNS VM 삭제 (vCenter 정리와 함께 · 보관·원복 기준 충족 후)" 추가(체크 항목 e41/i41).
-7. **08 확정 필요 항목**: VMware 엔지니어에 DNS VM 이동 방식(vMotion · 공유 데이터스토어 여부)·일정(11월 재구성 전) 추가.
+7. **08 요청 및 협의 사항** (기존 "확정 필요 항목"):
+   - 이름 변경: 장 제목 "08. 설계 제약 및 요청·협의 사항", 소제목 "요청 및 협의 사항".
+   - 표를 협의 항목 1건당 1행으로 분리(담당 · No. · 협의 항목 · 세부 내용). 최종 14건: 구축팀 7 · 네트워크 담당 4 · VMware 엔지니어 3.
+   - 구축팀: Ignition HTTP 포트 삭제. "서버별 물리 인터페이스명" → "인터페이스명 확인"(이기종 장비 TR2210 H4 · TNS-2100 인터페이스명 통일, RHCOS live ISO로 확인 · Ignition 생성 전).
+   - 네트워크 담당: "신규 IP" → "추가 IP 할당" 상세(망별 7개 = 관리망 6: Bastion 1 · Master KVM 호스트 1 · master-0/1/2 VM 3 · bootstrap VM 1(bootstrap 구성 완료 후 반납), nasbak 1: Bastion, 내부 HV#03 기존 IP 재사용 시 1개 감소). 망별 대역·게이트웨이, 내부 HV#03 호스트 IP, MTV 접속 경로, 스위치 포트, MTU, TNS-2100 NIC 삭제.
+   - VMware 엔지니어: vSphere 버전 · 호스트 제거 방법 · VDDK 패키지 삭제. DNS VM 이동 방식·일정, VMware Tools 미설치 VM 설치 협의(설치 방법·일정, 이관 전 설치) 추가.
+   - 작업 담당·고객사 항목 전부 삭제(VLAN 701 사용 VM, VMware Tools 미설치 VM 목록, 장비 로컬 디스크 구성).
+   - 03 장비별 IP 기입표 bootstrap 비고: "신규 · 설치 후 반납" → "신규 · bootstrap 구성 완료 후 반납"(외부·내부).
 8. 꼬리말 설계 근거에 2026-10-15 DNS VM 처리 변경 추가.
+9. **회사 로고**: 표지(머리글) 오른쪽 위에 AONSOFT 로고 추가. 이미지는 HTML에 내장(별도 파일 불필요), 모바일 폭에서는 제목 위에 배치.
 
 ## 검증
 

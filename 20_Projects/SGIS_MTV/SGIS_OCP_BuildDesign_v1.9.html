@@ -1,0 +1,707 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SGIS OpenShift 구축설계서</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+/* SGIS OpenShift 구축설계서 — 단일 스타일시트 (작업계획서 v2.8 스타일 기반)
+   색 역할: 남색 = 기본·구조 / 파랑 = 재활용 TNS-2100 / 빨강 = IP 할당 필요(전용) / 주황 = Worker2 MTV 완료 후 전환 */
+:root{
+  --font:"Pretendard","Noto Sans KR","Malgun Gothic","Apple SD Gothic Neo",sans-serif;
+  --ink:#1f2a3a;--ink-2:#334155;--muted:#475569;--line:#d5dce6;--line-2:#b9c4d3;
+  --paper:#eef1f5;--surface:#fff;--soft:#f5f7fa;
+  --navy:#1e3a5f;--navy-2:#2f4f7a;--navy-soft:#e6ecf4;
+  --new:#1d5bb5;--new-soft:#e3eeff;
+  --ip:#c62828;
+  --late:#b45309;--late-ink:#7c2d12;--late-soft:#fff3df;
+  --svc:#2f6fb5;--mgmt:#6d5aa6;--bk:#b0752f;
+  --note:#9a6a2a;--note-soft:#fbf4e6;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.7 var(--font);word-break:keep-all;-webkit-font-smoothing:antialiased}
+main{max-width:1380px;margin:auto;padding:32px 36px 72px}
+a{color:var(--new)}
+p{margin:10px 0}
+li{margin:6px 0}
+b,strong{font-weight:700}
+code{font-family:var(--font);background:var(--navy-soft);color:var(--navy);padding:1px 6px;border-radius:3px;font-size:.95em}
+.muted{color:var(--muted);font-size:14.5px}
+small{color:var(--muted);font-size:13px}
+
+/* 상단 */
+.toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}
+.tag{font-size:12.5px;font-weight:700;letter-spacing:1px;color:var(--navy);border:1.5px solid var(--line-2);padding:5px 12px}
+button{font:inherit;font-size:14px;border:1.5px solid var(--line-2);background:var(--surface);color:var(--navy);padding:7px 16px;cursor:pointer}
+button:hover{background:var(--navy-soft)}
+header{position:relative;background:var(--surface);border-top:7px solid var(--navy);border-bottom:1px solid var(--line-2);padding:36px 40px}
+
+.eyebrow{color:var(--navy-2);font-size:12px;font-weight:600;letter-spacing:2.5px;max-width:70%}
+h1{font-size:33px;font-weight:800;letter-spacing:-.5px;line-height:1.45;margin:14px 0;color:var(--navy)}
+header p{color:var(--ink-2);font-size:15.5px;margin:6px 0}
+nav{display:flex;flex-wrap:wrap;gap:8px 26px;padding:16px 2px;border-bottom:1px solid var(--line-2)}
+nav a{color:var(--navy-2);font-size:14.5px;font-weight:600;text-decoration:none}
+nav a:hover{color:var(--new);text-decoration:underline}
+
+/* 본문 블록 */
+section{background:var(--surface);border-top:3px solid var(--navy-2);padding:32px 36px;margin-top:28px;scroll-margin-top:16px}
+h2{font-size:24px;font-weight:800;color:var(--navy);letter-spacing:-.3px;margin:0 0 20px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+h3{font-size:18.5px;font-weight:700;color:var(--ink);margin:32px 0 12px;padding-left:10px;border-left:4px solid var(--navy-2);line-height:1.4}
+.note{border-left:4px solid var(--note);background:var(--note-soft);color:var(--ink);font-size:15.5px;padding:14px 18px;margin:18px 0}
+
+/* 요약 카드 */
+.cards{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);margin:22px 0}
+.card{padding:18px 22px;background:var(--soft);border-right:1px solid var(--line);font-size:14.5px;color:var(--ink-2)}
+.card:last-child{border-right:0}
+.card b{display:block;font-size:30px;font-weight:800;color:var(--navy);margin:4px 0}
+.card:nth-child(1){background:var(--new-soft);box-shadow:inset 0 4px 0 var(--new)}
+.card:nth-child(1) b{color:var(--new)}
+
+/* 표 */
+.tablewrap,.figure{overflow-x:auto}
+.tablewrap{border-bottom:1px solid var(--line)}
+table{width:100%;border-collapse:collapse;font-size:14.5px;line-height:1.7}
+th,td{padding:12px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}
+th{background:var(--navy-soft);color:var(--navy);font-weight:700;white-space:nowrap;border-top:2px solid var(--navy-2);border-bottom:1px solid var(--line-2)}
+tbody tr:nth-child(even){background:var(--soft)}
+tr:last-child td{border-bottom:0}
+td:first-child{color:var(--ink);font-weight:600}
+td small{display:inline-block;margin-top:2px;font-weight:600;color:var(--navy-2)}
+.risk td:first-child{white-space:nowrap}
+tr.row-new td{background:var(--new-soft)}
+tr.row-new td:first-child{box-shadow:inset 5px 0 0 var(--new)}
+
+/* 배지 */
+.badge-new,.badge-old,.badge-late,.badge-ip{display:inline-block;font-size:13px;font-weight:700;line-height:1.5;padding:1px 9px;border-radius:3px;white-space:nowrap;margin-right:5px}
+.badge-new{background:var(--new);border:1.5px solid var(--new);color:#fff}
+.badge-old{background:#fff;border:1.5px solid #8a99ad;color:var(--ink-2)}
+.badge-late{background:var(--late-soft);border:1.5px solid var(--late);color:var(--late-ink)}
+.badge-ip{background:var(--ip);border:1.5px solid var(--ip);color:#fff}
+
+/* 범례 */
+.legend{display:flex;flex-wrap:wrap;gap:10px 24px;align-items:center;padding:12px 16px;background:var(--soft);border:1px solid var(--line);color:var(--ink-2);font-size:14px}
+.legend i{display:inline-block;width:24px;height:4px;vertical-align:middle;margin-right:8px}
+.legend .old-key{width:24px;height:15px;background:#fff;border:1.5px solid #8a99ad}
+.legend .new-key{width:24px;height:15px;background:var(--new-soft);border:2.5px dashed var(--new)}
+.legend i.ip-key{width:auto;height:auto;font-style:normal;line-height:20px;padding:0 8px;background:var(--ip);color:#fff;font-weight:700;font-size:12.5px;border-radius:3px}
+
+/* 구성도 SVG */
+.figure{border:1px solid var(--line);background:#f8fafc;padding:10px}
+.figure svg{width:100%;min-width:1000px;height:auto;display:block;background:#f8fafc}
+svg text{font-family:var(--font);fill:var(--ink);font-size:15px}
+svg .small{font-size:13px;fill:var(--ink-2)}
+svg .bold{font-size:17.5px;font-weight:800;fill:var(--ink)}
+svg .stitle{font-size:18px;font-weight:800}
+svg .phase-title{fill:#fff;font-size:18px;font-weight:800}
+.panel{fill:#fff;stroke:#c8d2df}
+.panel-asis{stroke:#64748b;stroke-width:2.5}.panel-tobe{stroke:var(--navy-2);stroke-width:2.5}
+.heading-asis{fill:#64748b}.heading-tobe{fill:var(--navy-2)}
+.server{fill:#fff;stroke:#8a99ad;stroke-width:1.5}
+.pool{fill:#eef2f7;stroke:#9fb0c6}
+.vm{fill:#e7edf5;stroke:#8aa0bd}
+.wire{fill:none;stroke-width:1.8}.bus{fill:none;stroke-width:3}
+.svc{stroke:var(--svc)}.mgmt{stroke:var(--mgmt)}.bk{stroke:var(--bk)}
+.new-server{fill:var(--new-soft);stroke:var(--new);stroke-width:3;stroke-dasharray:8 4}
+.new-tag{fill:var(--new)}
+svg .tag-label{fill:#fff;font-size:13px;font-weight:700}
+svg .new-text{fill:var(--new);font-weight:700}
+.ip-badge{fill:var(--ip)}
+svg .ip-label{fill:#fff;font-size:13px;font-weight:700}
+.late-server{fill:var(--late-soft);stroke:var(--late);stroke-width:3}
+.late-badge{fill:var(--late)}
+svg .late-label{fill:#fff;font-size:13px;font-weight:700}
+.worker-late .vm{fill:#ffe7c2;stroke:#c98a3a}
+.worker-late .bold{fill:var(--late-ink)}
+.worker-late .small{fill:#6b3a12}
+/* 상세 구성도 */
+.ipmi{stroke:#64748b;stroke-dasharray:6 4}
+.fc{stroke:#0f766e}
+.bus.ipmi{stroke-width:2.2}
+.dot{fill:#334155}
+svg .lbl{paint-order:stroke;stroke:#fff;stroke-width:5px;stroke-linejoin:round}
+.svcbox{fill:#f5f7fa;stroke:#c8d2df}
+.box{fill:#fff;stroke:#8a99ad;stroke-width:1.5}
+.box-svc{fill:#eaf2fb;stroke:var(--svc);stroke-width:1.8}
+.box-bk{fill:#fbf2e7;stroke:var(--bk);stroke-width:1.8}
+.box-mgmt{fill:#f1eef9;stroke:var(--mgmt);stroke-width:1.8}
+.box-off{fill:#f1f5f9;stroke:#94a3b8;stroke-width:1.5;stroke-dasharray:6 4}
+.box-tbd{fill:#fff8e6;stroke:#c99a2e;stroke-width:1.8;stroke-dasharray:7 4}
+.box-st{fill:#e9f5f2;stroke:#0f766e;stroke-width:2}
+.arrow{fill:none;stroke:#475569;stroke-width:1.8}
+.arrow-tbd{fill:none;stroke:#c99a2e;stroke-width:1.8;stroke-dasharray:6 4}
+.legend i.ipmi-key{height:0;background:none;border-top:3px dashed #64748b}
+.legend .tbd-key{width:24px;height:15px;background:#fff8e6;border:1.5px dashed #c99a2e}
+
+/* 장비 재구성 매핑 행 (v1.1 — 곡선 화살표 구성도 대체) */
+.remap{display:flex;flex-direction:column;gap:14px;margin:20px 0}
+.remap-row{display:grid;grid-template-columns:40px minmax(0,1fr) 112px minmax(0,1fr);gap:0 16px;align-items:center}
+.remap-step{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:#fff;background:var(--navy-2);justify-self:center}
+.remap-step.s-new{background:#fff;border:2px solid var(--new);color:var(--new)}
+.remap-step.s-chg{background:#be185d}
+.remap-step.s-late{background:var(--late)}
+.remap-box{border:1.5px solid var(--line-2);border-radius:8px;padding:14px 16px;background:#fff;min-height:92px}
+.remap-box .ttl{font-size:16px;font-weight:800;color:var(--ink);margin-bottom:2px}
+.remap-box .sub{font-size:13.5px;color:var(--ink-2)}
+.remap-box .meta{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.65}
+
+.remap-box.is-empty{display:flex;align-items:center;justify-content:center;border-style:dashed;background:var(--soft);color:var(--muted);font-size:13.5px}
+.remap-box.is-new{background:var(--new-soft);border:2px dashed var(--new)}
+.remap-box.is-worker{background:var(--soft)}
+.remap-box.is-late{background:var(--late-soft);border:2px solid var(--late)}
+.remap-box .chip{display:inline-block;margin-top:8px;font-size:12px;font-weight:700;padding:2px 8px;border-radius:3px;background:#e8f6ee;color:#166534;border:1px solid #86cfa8}
+.remap-arrow{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.remap-arrow .glyph{font-size:24px;line-height:1;font-weight:700}
+.remap-arrow .lbl{font-size:12px;font-weight:700;white-space:nowrap}
+.remap-arrow.a-chg .glyph,.remap-arrow.a-chg .lbl{color:#be185d}
+.remap-arrow.a-late .glyph,.remap-arrow.a-late .lbl{color:var(--late)}
+.remap-arrow.a-new .glyph,.remap-arrow.a-new .lbl{color:var(--new)}
+.remap-head{margin-bottom:-4px}
+.remap-colhead{font-size:13.5px;font-weight:800;letter-spacing:1px;text-align:center;padding:7px 12px;border-radius:6px}
+.ch-asis{background:#e2e8f0;color:#475569}.ch-tobe{background:var(--navy-2);color:#fff}
+.remap-box .spec{font-size:13px;color:var(--muted);margin-top:2px}
+.remap-net-title{font-size:12.5px;font-weight:700;color:var(--muted);margin:26px 0 8px;letter-spacing:.5px}
+
+/* 설계 항목 상태 · 그림 설명 · 확인 필요 목록 (v1.3) */
+.st{display:inline-block;font-size:12px;font-weight:700;padding:1px 8px;border-radius:3px;white-space:nowrap}
+.st-ok{background:#e8f6ee;color:#166534;border:1px solid #86cfa8}.st-dec{background:#fff3df;color:#7c2d12;border:1px solid #e0a35a}.st-chk{background:#fff8e6;color:#7a5a14;border:1px dashed #c99a2e}
+.fignote{margin:10px 0 0;padding-left:20px;font-size:14.5px;color:var(--ink-2)}
+.checks{list-style:none;padding:0;margin:8px 0}.checks li{padding:5px 0;border-bottom:1px solid var(--line);font-size:14.5px}.checks .st{margin-right:10px}
+
+/* IP 할당 상세 */
+.ip-need{margin-top:8px;border-left:3px solid var(--ip);background:#fff5f5;padding:6px 10px;border-radius:0 4px 4px 0}
+
+/* Master KVM 호스트 안의 VM 표시 */
+.kvm{margin-top:10px;border:1.2px dashed #7d93b2;border-radius:6px;background:#f5f8fc;padding:8px 10px}
+.kvm-head{font-size:12.5px;font-weight:700;color:var(--navy-2);margin-bottom:6px}
+.kvm-vms{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.kvm-vm{display:flex;flex-direction:column;align-items:center;gap:3px;background:#fff;border:2px solid var(--navy-2);border-radius:6px;padding:8px 6px;text-align:center}
+.kvm-vm .vm-mark{background:var(--navy-2);color:#fff;font-size:11px;font-weight:800;line-height:1;padding:3px 7px;border-radius:3px}
+.kvm-vm .vm-name{font-size:14.5px;font-weight:800;color:var(--ink)}
+.kvm-vm .vm-role{font-size:12px;color:var(--muted)}
+.kvm{border:1.5px dashed var(--navy-2)}
+.kvm-head{font-size:13px}.kvm-head b{color:var(--ink)}
+.kvm-foot{font-size:12.5px;color:var(--muted);margin-top:6px}
+
+/* 단계 카드 */
+.steps{display:grid;grid-template-columns:repeat(5,1fr);border:1px solid var(--line-2)}
+.step{padding:16px 18px;background:var(--soft);border-right:1px solid var(--line-2);border-top:4px solid var(--navy-2)}
+.step:last-child{border-right:0}
+.step strong{display:block;margin-bottom:8px;color:var(--navy);font-size:16px}
+.step p{font-size:14.5px;color:var(--ink-2)}
+
+footer{margin-top:28px;padding-top:22px;border-top:1px solid var(--line-2);color:var(--muted);font-size:13.5px;line-height:1.8}
+
+/* 구축설계서 추가 — 장비 재구성 구성도 · 미확정 값 */
+h4{font-size:16px;font-weight:700;color:var(--navy-2);margin:22px 0 10px}
+.tbd{display:inline-block;font-size:12.5px;font-weight:700;line-height:1.5;padding:0 7px;border-radius:3px;background:#fff8e6;border:1.5px dashed #c99a2e;color:#7a5a14;white-space:nowrap}
+.arrow-case{fill:none;stroke:#fff;stroke-width:8}
+.arrow-chg{fill:none;stroke:#be185d;stroke-width:3}
+.arrow-late{fill:none;stroke:var(--late);stroke-width:3;stroke-dasharray:10 5}
+.arrow-mtv{fill:none;stroke:#15803d;stroke-width:4}
+.lbl-bg{fill:#fff;stroke-width:1.5}.lbl-chg{stroke:#be185d}.lbl-late{stroke:var(--late)}.lbl-mtv{stroke:#15803d}
+svg .arc-label{fill:#9d174d;font-weight:800;font-size:14px}
+svg .late-arc-label{fill:var(--late-ink)}
+svg .mtv-label{fill:#166534;font-weight:800;font-size:14px}
+.legend .late-key{width:24px;height:15px;background:var(--late-soft);border:2.5px solid var(--late)}
+.legend i.chg-key{height:0;background:none;border-top:3px solid #be185d}
+.legend i.late-arrow-key{height:0;background:none;border-top:3px dashed var(--late)}
+.legend i.mtv-key{height:0;background:none;border-top:4px solid #15803d}
+.num-chg{fill:#be185d}.num-late{fill:var(--late)}.num-mtv{fill:#15803d}
+svg .num-label{fill:#fff;font-size:13px;font-weight:800}
+.panel-asis-lite{fill:#fbfcfd;stroke:#cbd5e1;stroke-width:1.5}
+.heading-asis-lite{fill:#e2e8f0}
+svg .phase-title-lite{fill:#475569;font-size:16px;font-weight:800}
+.asis-server{fill:#f8fafc;stroke:#a7b3c4}
+svg .bold-s{font-size:15px;font-weight:800;fill:var(--ink-2)}
+svg .bold-l{font-size:19px;font-weight:800;fill:var(--ink)}
+.worker-late .bold-l{fill:var(--late-ink)}
+svg .xs{font-size:12px;fill:var(--muted)}
+svg .tns-title{font-size:13.5px}
+.num-new{fill:#fff}
+svg .num-new-label{fill:var(--new);font-size:12px;font-weight:800}
+.kvm-frame{fill:#f5f8fc;stroke:#7d93b2;stroke-width:1.2;stroke-dasharray:5 3}
+svg .kvm-label{fill:var(--navy-2);font-weight:700}
+.kvm-vm{fill:#fff;stroke:#6b86ab;stroke-width:1.4}
+.vm-mark{fill:var(--navy-2)}
+svg .vm-mark-label{fill:#fff;font-size:10px;font-weight:800;text-anchor:middle}
+svg .vm-name{fill:var(--ink);font-weight:600}
+.step-kind strong{display:flex;align-items:center;gap:8px}
+.stepno{display:inline-flex;align-items:center;justify-content:center;flex:none;width:24px;height:24px;border-radius:50%;color:#fff;font-size:13px;font-weight:800;line-height:1}
+.n-add{background:#fff;border:2px solid var(--new);color:var(--new)}.n-chg{background:#be185d}.n-mtv{background:#15803d}.n-late{background:var(--late)}
+.step.k-add{border-top-color:var(--new)}.step.k-chg{border-top-color:#be185d}.step.k-mtv{border-top-color:#15803d}.step.k-late{border-top-color:var(--late)}
+.step small{display:block;margin-top:6px;font-size:13px;color:var(--muted)}
+@media(max-width:800px){
+  main{padding:16px}header{padding:24px}header:after{font-size:20px;right:16px;top:18px}
+  .eyebrow{max-width:66%;font-size:10px}h1{font-size:25px}section{padding:20px 16px}
+  .cards,.steps{grid-template-columns:1fr 1fr}.card,.step{border-bottom:1px solid var(--line)}
+  table{min-width:720px}
+  .remap-row{grid-template-columns:1fr}.remap-step{justify-self:start}.remap-head{display:none}
+  .remap-arrow{flex-direction:row;padding:4px 0}.remap-arrow .glyph{transform:rotate(90deg)}
+}
+@media print{
+  @page{size:A3 landscape;margin:12mm}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{background:#fff;font-size:12px}main{padding:0;max-width:none}
+  .toolbar,nav{display:none}
+  header{padding:20px 28px}header:after{font-size:28px}h1{font-size:26px}
+  section{padding:16px 20px;margin-top:16px;break-inside:auto}
+  h2,h3{break-after:avoid}.figure,table,.steps{break-inside:avoid}
+  .figure{padding:4px}.figure svg{min-width:0}
+  .remap-row{break-inside:avoid}
+  .card{padding:10px 15px}.card b{font-size:22px}
+  table{font-size:11.5px}th,td{padding:7px 9px}thead{display:table-header-group}tr{break-inside:avoid}
+  .note,.muted{font-size:11.5px}footer{font-size:10.5px}
+}
+
+/* v1.4 현장 설치용 */
+.ipform td{border:1px solid var(--line-2)}.ipform td.blank{min-width:150px;height:42px;background:#fff}
+.ipform tr.net-head td{background:var(--navy-soft);color:var(--navy);font-weight:800}
+.ipform .na{color:var(--muted)}
+.ipform-net td:not(:first-child){min-width:170px;height:42px}
+.phase{margin:22px 0;border:1px solid var(--line-2);border-radius:6px;overflow:hidden;break-inside:avoid}
+.phase-head{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--navy);color:#fff}
+.phase-head b{font-size:19px}.phase-head small{display:inline;margin:0;font-size:14px;font-weight:500;color:#cfdbee}
+.phase-no{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:#fff;color:var(--navy);font-weight:800;font-size:16px;flex:none}
+.cktable{font-size:16px}.cktable th{border-top:0}.cktable td{padding:13px 14px;vertical-align:middle}
+.cktable td:first-child{font-weight:400}
+.cktable{table-layout:fixed}.c-ck{width:76px;text-align:center!important}.cktable th:last-child{width:32%}
+.ck{display:inline-block;cursor:pointer}.ck input{position:absolute;opacity:0;width:0;height:0}
+.ck span{display:inline-block;width:28px;height:28px;border:2.5px solid var(--navy-2);border-radius:5px;background:#fff;vertical-align:middle;position:relative}
+.ck input:checked+span{background:#15803d;border-color:#15803d}
+.ck input:checked+span:after{content:"";position:absolute;left:8px;top:2px;width:8px;height:15px;border:solid #fff;border-width:0 3.5px 3.5px 0;transform:rotate(45deg)}
+.ck input:focus-visible+span{outline:3px solid #93c5fd;outline-offset:2px}
+.ck-reset{margin-left:8px;font:inherit;font-size:13.5px;padding:3px 12px;border:1px solid var(--line-2);border-radius:4px;background:var(--soft);cursor:pointer}
+@media print{.ck-reset{display:none}.ck input:checked+span{background:#fff;border-color:var(--navy-2)}.ck input:checked+span:after{display:none}.cktable{font-size:13px}.phase{margin:12px 0}}
+
+/* v1.5 개요 그림 · NIC 표 */
+.cap{margin:8px 0 0;font-size:13.5px;color:var(--muted)}
+.env-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.env-net{border:1px solid var(--line-2);border-radius:6px;background:var(--soft);overflow:hidden}
+.env-net-head{padding:9px 14px;background:var(--navy);color:#fff;font-weight:700;font-size:14.5px}
+.env-hosts{display:flex;flex-wrap:wrap;gap:10px;padding:14px}
+.env-host{flex:1 1 150px;background:#fff;border:1.5px solid var(--line-2);border-radius:6px;padding:10px 12px}
+.env-name{font-weight:800;color:var(--navy);font-size:16px}
+.env-spec{font-size:12.5px;color:var(--muted);margin:2px 0 8px}
+.env-chips{display:flex;flex-wrap:wrap;gap:5px}
+.ec{font-size:12.5px;font-weight:700;padding:2px 8px;border-radius:3px;border:1px solid var(--line-2);background:var(--soft);color:var(--ink-2)}
+.ec-vm{background:#e8f6ee;color:#166534;border-color:#86cfa8}
+.ec-dns{background:#fff3df;color:#7c2d12;border-color:#e0a35a}
+.ec-sys{background:#f1f5f9;color:#475569}
+.ec-svc{background:var(--navy-soft);color:var(--navy);border-color:#b9c8dd}
+.ec-mvm{background:#eef2ff;color:#3730a3;border-color:#a5b4fc}
+.ec-tmp{background:#fff;color:var(--muted);border-style:dashed}
+.ec-late{background:var(--late-soft);color:var(--late-ink);border-color:var(--late)}
+.env-host.n-bas,.env-host.n-mst{border-color:var(--new)}
+.env-host.n-late{border-style:dashed;border-color:var(--late)}
+.env-foot{padding:0 14px 12px;font-size:13px;color:var(--ink-2)}
+.ipform tr.net-row td{background:var(--soft);font-weight:700}
+.ipform tr.net-row td.blank{background:#fff}
+.env-ocp .env-hosts{display:grid;grid-template-columns:repeat(4,1fr)}
+.sumtbl td[rowspan]{width:7em;vertical-align:middle;background:var(--soft);font-weight:700;white-space:nowrap}.sumtbl tr.grp td{border-top:2px solid var(--line-2)}.sumtbl tr.tot td{font-weight:800;color:var(--navy)}.sumtbl small{color:var(--muted);font-weight:400}
+.nic2 th,.ipnet th{white-space:nowrap}
+.nic2 td{vertical-align:middle}
+.nic2 tr.grp td{border-top:2px solid var(--line-2)}
+.nic2 td.srv{background:var(--soft);font-weight:800;color:var(--ink);vertical-align:middle;white-space:nowrap;width:10em}
+.nic2 td.srv small{display:block;font-weight:500;color:var(--muted);font-size:12.5px;margin-top:2px}
+.nic2 td.nb{white-space:nowrap;width:9em}
+.nic2 td.nb b{font-family:ui-monospace,Consolas,monospace;font-size:13.5px;margin-left:6px;color:var(--ink)}
+.nic2 td.none{background:var(--soft);color:var(--muted);font-size:12.5px;text-align:center}
+.nic2 td.nt{font-size:12.5px;color:var(--muted)}
+.nic2 td.blank{min-width:120px;height:38px}
+.net{display:inline-block;min-width:4.6em;padding:2px 8px;border-radius:10px;font-size:11.5px;font-weight:800;text-align:center;color:#fff}
+.net.n-mgmt{background:var(--mgmt)}.net.n-svc{background:var(--svc)}.net.n-bk{background:var(--bk)}.net.n-ipmi{background:#7b8794}
+.ipnet th{background:var(--navy-soft);color:var(--navy);font-weight:800;text-align:left;width:11em;border:1px solid var(--line-2);padding:8px 12px}
+.ipnet td.blank{height:38px}
+.sub-cap{margin:16px 0 6px;font-size:13.5px;font-weight:800;color:var(--navy-2)}
+.nicform tr.grp td{border-top:2px solid var(--line-2)}.nicform td[rowspan]{vertical-align:middle;background:var(--soft);font-weight:700}
+.nicform td.k{background:var(--soft);color:var(--muted);font-size:12.5px;white-space:nowrap;text-align:center}.nicform td.fx{color:var(--muted);font-size:12.5px;text-align:center}.nicform td.blank{min-width:110px}
+.nicform td.na{color:var(--muted);text-align:center}
+@media(max-width:800px){.env-grid{grid-template-columns:1fr}}
+@media print{.env-net{break-inside:avoid}}
+
+/* v1.6s 기입 · 인쇄 */
+.tools{display:flex;flex-wrap:wrap;gap:8px}
+.tools button{font:inherit;font-size:13.5px;font-weight:700;padding:6px 14px;border:1.5px solid var(--navy-2);border-radius:4px;background:#fff;color:var(--navy);cursor:pointer}
+.tools button:hover{background:var(--navy-soft)}
+.tools .tool-warn{border-color:var(--line-2);color:var(--muted);font-weight:500}
+td[contenteditable]{background:#fffdf0!important;cursor:text;font-weight:400!important;color:var(--ink)!important;font-family:ui-monospace,Consolas,monospace;font-size:14.5px}
+td[contenteditable]:hover{box-shadow:inset 0 0 0 1px #e0c35a}
+td[contenteditable]:focus{outline:2px solid var(--navy-2);outline-offset:-2px;background:#fff!important}
+@media print{
+  td[contenteditable]{background:#fff!important;box-shadow:none}
+  body.pm-forms header,body.pm-forms footer,body.pm-forms section:not(#net){display:none!important}
+  body.pm-forms #net>*:not(.formblock):not(h2){display:none!important}
+  body.pm-checklist header,body.pm-checklist footer,body.pm-checklist section:not(#checklist){display:none!important}
+  .formblock h3,.formblock h4{break-after:avoid;page-break-after:avoid}.formblock .tablewrap{break-inside:avoid}
+  .formblock h4+.tablewrap{break-before:avoid}
+}
+.agree td[rowspan]{width:9em;vertical-align:middle;background:var(--soft);font-weight:700;white-space:nowrap}.agree tr.grp td{border-top:2px solid var(--line-2)}.agree td.no{text-align:center;color:var(--muted);width:3em}
+.brand-logo{position:absolute;top:30px;right:40px;height:30px;width:auto}@media (max-width:720px){.brand-logo{position:static;display:block;height:22px;margin-bottom:12px}}@media print{.brand-logo{height:26px}}
+</style></head><body><main><div class="toolbar"><div class="tools"><button type="button" data-print="all">전체 인쇄</button><button type="button" data-print="forms">기입표만 인쇄</button><button type="button" data-print="checklist">체크리스트만 인쇄</button><button type="button" id="fieldReset" class="tool-warn">입력 지우기</button></div><span class="tag">VERSION 1.9 / 기입 · 인쇄용 · 경량화(용량·MTV·제약/협의 장 삭제)</span></div>
+
+<header><img class="brand-logo" alt="AONSOFT" src="data:image/jpeg;base64,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"><div class="eyebrow">SGIS INFRASTRUCTURE / OPENSHIFT BUILD DESIGN</div><h1>국가데이터처 SGIS 오픈플랫폼<br>OpenShift 구축설계서</h1><p>망별 OpenShift 클러스터(외부망·내부망) 구성 · 폐쇄망 UPI 설치 · OpenShift Virtualization · MTV 이관</p><p>내부 구축팀 현장 설치 문서 · 작성일 2026.10.14 · 기준 자료: 작업계획서 v2.8, 2026-10-12 현장 실사, 2026-10-13 팀장 검토 의견 · <span class="tbd">TBD</span> 표시는 미확정 값</p></header>
+<nav aria-label="목차"><a href="#overview">01 개요</a><a href="#arch">02 아키텍처</a><a href="#net">03 네트워크</a><a href="#checklist">04 설치 체크리스트</a></nav>
+
+<section id="overview"><h2>01. 개요</h2>
+<div class="cards"><div class="card">이관 대상 VM<b>35대</b>외부망 11 / 내부망 24 · vCenter·DNS 제외</div><div class="card">이관 VM vCPU<b>304</b>외부망 108 / 내부망 196</div><div class="card">이관 VM 메모리<b>1,124GB</b>외부망 364 / 내부망 760GB</div><div class="card">원본 데이터 사용량<b>74.7TB</b>외부 12.4 / 내부 62.3 · EMC FC</div></div>
+<h3>망별 구축 인프라</h3><div class="tablewrap"><table class="sumtbl"><thead><tr><th colspan="2">구분</th><th>외부망</th><th>내부망</th></tr></thead><tbody>
+<tr class="grp"><td rowspan="6">구축 인프라</td><td>Bastion</td><td>재활용 TNS-2100 #A · 36코어 · 576GB</td><td>재활용 TNS-2100 · 36코어 · 576GB</td></tr>
+<tr><td>Master KVM 호스트</td><td>재활용 TNS-2100 #B · 36코어 · 576GB<br><small>Master VM 3 × 8 vCPU · 32GB</small></td><td>기존 HV#03 · 48코어 · 1TB<br><small>Master VM 3 × 8 vCPU · 32GB</small></td></tr>
+<tr><td>Worker1</td><td>기존 HV#02 · 48코어 · 1TB</td><td>기존 HV#01 · 48코어 · 1TB</td></tr>
+<tr><td>Worker2 (MTV 완료 후)</td><td>기존 HV#01 · 48코어 · 1TB</td><td>기존 HV#02 · 48코어 · 1TB</td></tr>
+<tr class="tot"><td>합계</td><td>4대 · 168코어 · 3,200GB<br><small>Worker 96코어 · 2TB</small></td><td>4대 · 180코어 · 3,648GB<br><small>Worker 96코어 · 2TB</small></td></tr>
+<tr class="tot"><td>Worker1 단독 수용 (이관 기간)</td><td>CPU 요청 약 11 / 48코어 · 메모리 약 440GB / 1TB (43%)</td><td>CPU 요청 약 20 / 48코어 · 메모리 약 840GB / 1TB (82%)</td></tr>
+</tbody></table></div>
+<h3>① 현재 VMware 구성</h3><div class="env-grid">
+<div class="env-net"><div class="env-net-head">외부망 · vSphere 8 · HV 2대</div><div class="env-hosts">
+<div class="env-host"><div class="env-name">HV#01</div><div class="env-spec">TR2210 H4 · 48코어 · 1TB</div><div class="env-chips"><span class="ec ec-vm">업무 VM 11</span><span class="ec ec-sys">vCenter</span></div></div>
+<div class="env-host"><div class="env-name">HV#02</div><div class="env-spec">TR2210 H4 · 48코어 · 1TB</div><div class="env-chips"><span class="ec ec-dns">DNS VM</span><span class="ec ec-sys">vCLS</span></div></div>
+</div><div class="env-foot">데이터스토어 VMFS6 × 1 (FC · Dell EMC) · 사용 12.4TB</div></div>
+<div class="env-net"><div class="env-net-head">내부망 · vSphere 8 · HV 3대</div><div class="env-hosts">
+<div class="env-host"><div class="env-name">HV#01</div><div class="env-spec">TR2210 H4 · 48코어 · 1TB</div><div class="env-chips"><span class="ec ec-sys">vCLS</span></div></div>
+<div class="env-host"><div class="env-name">HV#02</div><div class="env-spec">TR2210 H4 · 48코어 · 1TB</div><div class="env-chips"><span class="ec ec-vm">업무 VM 24</span><span class="ec ec-sys">vCenter</span></div></div>
+<div class="env-host"><div class="env-name">HV#03</div><div class="env-spec">TR2210 H4 · 48코어 · 1TB</div><div class="env-chips"><span class="ec ec-dns">DNS VM</span><span class="ec ec-sys">vCLS</span></div></div>
+</div><div class="env-foot">데이터스토어 VMFS6 × 3 (FC · Dell EMC) · 사용 62.3TB</div></div>
+</div>
+<h3>② 이관 대상 VM</h3><div class="tablewrap"><table><thead><tr><th>망</th><th>원본 HV</th><th>서비스 VM</th><th>RHEL 8.9</th><th>Windows Server 2022</th><th>vCPU</th><th>메모리</th><th>데이터스토어 사용량</th></tr></thead><tbody>
+<tr><td>외부망</td><td>HV#01</td><td><b>11식</b></td><td>8식</td><td>3식</td><td>108</td><td>364GB</td><td>12.4TB · VMFS6 1개</td></tr>
+<tr><td>내부망</td><td>HV#02</td><td><b>24식</b></td><td>22식</td><td>2식</td><td>196</td><td>760GB</td><td>62.3TB · VMFS6 3개</td></tr>
+<tr><td>합계</td><td>–</td><td><b>35식</b></td><td>30식</td><td>5식</td><td>304</td><td>1,124GB</td><td>74.7TB</td></tr>
+</tbody></table></div>
+<p class="cap">제외: 망별 DNS VM 1식(vCenter·ESXi 관리용 — 전환 작업 전 MTV 원본 HV로 이동, MTV 완료 후 삭제) · vCenter · vCLS</p>
+<h3>③ 구축할 OpenShift 인프라</h3><div class="env-grid env-ocp">
+<div class="env-net"><div class="env-net-head">외부망 클러스터 · OCP 4.22 · UPI (platform: none) · 폐쇄망</div><div class="env-hosts">
+<div class="env-host n-bas"><div class="env-name">Bastion</div><div class="env-spec">TNS-2100 #A · RHEL 9.8</div><div class="env-chips"><span class="ec ec-svc">DNS</span><span class="ec ec-svc">LB</span><span class="ec ec-svc">NTP</span><span class="ec ec-svc">미러 레지스트리</span><span class="ec ec-svc">Ignition HTTP</span><span class="ec ec-svc">etcd 백업</span></div></div>
+<div class="env-host n-mst"><div class="env-name">Master KVM</div><div class="env-spec">TNS-2100 #B · RHEL 9.8 KVM</div><div class="env-chips"><span class="ec ec-mvm">VM master-0</span><span class="ec ec-mvm">VM master-1</span><span class="ec ec-mvm">VM master-2</span><span class="ec ec-tmp">bootstrap (임시)</span></div></div>
+<div class="env-host n-wk"><div class="env-name">Worker1</div><div class="env-spec">HV#02 · RHCOS</div><div class="env-chips"><span class="ec ec-vm">이관 VM 11 수신</span></div></div>
+<div class="env-host n-late"><div class="env-name">Worker2</div><div class="env-spec">HV#01 · RHCOS</div><div class="env-chips"><span class="ec ec-late">MTV 완료 후</span></div></div>
+</div></div>
+<div class="env-net"><div class="env-net-head">내부망 클러스터 · OCP 4.22 · UPI (platform: none) · 폐쇄망</div><div class="env-hosts">
+<div class="env-host n-bas"><div class="env-name">Bastion</div><div class="env-spec">TNS-2100 · RHEL 9.8</div><div class="env-chips"><span class="ec ec-svc">DNS</span><span class="ec ec-svc">LB</span><span class="ec ec-svc">NTP</span><span class="ec ec-svc">미러 레지스트리</span><span class="ec ec-svc">Ignition HTTP</span><span class="ec ec-svc">etcd 백업</span></div></div>
+<div class="env-host n-mst"><div class="env-name">Master KVM</div><div class="env-spec">HV#03 · RHEL 9.8 KVM</div><div class="env-chips"><span class="ec ec-mvm">VM master-0</span><span class="ec ec-mvm">VM master-1</span><span class="ec ec-mvm">VM master-2</span><span class="ec ec-tmp">bootstrap (임시)</span></div></div>
+<div class="env-host n-wk"><div class="env-name">Worker1</div><div class="env-spec">HV#01 · RHCOS</div><div class="env-chips"><span class="ec ec-vm">이관 VM 24 수신</span></div></div>
+<div class="env-host n-late"><div class="env-name">Worker2</div><div class="env-spec">HV#02 · RHCOS</div><div class="env-chips"><span class="ec ec-late">MTV 완료 후</span></div></div>
+</div></div>
+</div>
+<h4>적용 버전</h4><div class="tablewrap"><table><thead><tr><th>구성요소</th><th>버전</th><th>비고</th></tr></thead><tbody>
+<tr><td>OpenShift Container Platform</td><td>4.22</td><td>z-stream <span class="tbd">TBD</span></td></tr>
+<tr><td>노드 OS</td><td>RHCOS (RHEL 9.8 기반)</td><td>Master VM · Worker</td></tr>
+<tr><td>Bastion · KVM 호스트 OS</td><td>RHEL 9.8</td><td>KVM 호스트는 libvirt/KVM</td></tr>
+<tr><td>OpenShift Virtualization · NMState</td><td>OCP 4.22 대응</td><td>Operator 미러 반입</td></tr>
+<tr><td>Migration Toolkit for Virtualization</td><td>2.12</td><td>콜드 이관</td></tr>
+<tr><td>미러 레지스트리</td><td>mirror registry for Red Hat OpenShift (Quay)</td><td>형태 <span class="tbd">TBD</span></td></tr>
+</tbody></table></div>
+</section>
+
+<section id="arch"><h2>02. 아키텍처</h2>
+<h3>그림 1. 전체 구성도 — 한 망 기준 (TO-BE)</h3><div class="legend"><span><i style="background:var(--mgmt)"></i>관리망 (bond0)</span><span><i style="background:var(--svc)"></i>서비스망 (bond1)</span><span><i style="background:var(--bk)"></i>nasbak망 (bond2)</span><span><i class="ipmi-key"></i>IPMI망</span><span><i style="background:#0f766e"></i>FC SAN</span><span><i class="tbd-key"></i>조건부 · 확인 필요</span></div>
+<div class="figure"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 770" role="img" aria-label="전환 후 OpenShift 클러스터 전체 구성도: Bastion, Master KVM 호스트, Worker 2대와 관리망·서비스망·nasbak망·IPMI망, FC 스토리지, 소스 VMware">
+<text x="20" y="90" class="small">OpenShift 노드</text>
+<rect x="200" y="60" width="230" height="270" rx="7" class="server"/><text x="315" y="90" text-anchor="middle" class="bold">Bastion</text>
+<rect x="212" y="104" width="206" height="25" rx="4" class="svcbox"/><text x="315" y="121" text-anchor="middle" class="small">API LB 6443 · MCS 22623</text>
+<rect x="212" y="134" width="206" height="25" rx="4" class="svcbox"/><text x="315" y="151" text-anchor="middle" class="small">Ingress LB 443 · 80 (L4)</text>
+<rect x="212" y="164" width="206" height="25" rx="4" class="svcbox"/><text x="315" y="181" text-anchor="middle" class="small">DNS api · *.apps · HV · vc</text>
+<rect x="212" y="194" width="206" height="25" rx="4" class="svcbox"/><text x="315" y="211" text-anchor="middle" class="small">NTP 123/UDP (망별 NTP 동기화)</text>
+<rect x="212" y="224" width="206" height="25" rx="4" class="svcbox"/><text x="315" y="241" text-anchor="middle" class="small">미러 레지스트리 Quay :8443</text>
+<rect x="212" y="254" width="206" height="25" rx="4" class="svcbox"/><text x="315" y="271" text-anchor="middle" class="small">HTTP · Ignition 배포</text>
+<text x="315" y="300" text-anchor="middle" class="small">bond0 관리 ×2 · bond2 NAS/BK ×2</text><text x="315" y="320" text-anchor="middle" class="small new-text">NAS/BK 신규 포설 · etcd 백업</text>
+<rect x="445" y="60" width="260" height="270" rx="7" class="server"/><text x="575" y="90" text-anchor="middle" class="bold">Master KVM 호스트</text>
+<rect x="457" y="124" width="74" height="44" rx="5" class="vm"/><text x="494" y="151" text-anchor="middle" class="small">master-0</text>
+<rect x="538" y="124" width="74" height="44" rx="5" class="vm"/><text x="575" y="151" text-anchor="middle" class="small">master-1</text>
+<rect x="619" y="124" width="74" height="44" rx="5" class="vm"/><text x="656" y="151" text-anchor="middle" class="small">master-2</text>
+<rect x="457" y="176" width="236" height="34" rx="5" class="box-tbd"/><text x="575" y="198" text-anchor="middle" class="small">bootstrap VM (임시 · 설치 후 삭제)</text>
+<rect x="457" y="218" width="236" height="28" rx="4" class="box-mgmt"/><text x="575" y="237" text-anchor="middle" class="small">브리지 br0 (관리망)</text>
+<text x="575" y="268" text-anchor="middle" class="small">bond0 MGMT ×2 (관리망만)</text>
+<rect x="457" y="282" width="236" height="26" rx="4" class="ip-badge"/><text x="575" y="300" text-anchor="middle" class="ip-label">● IP 5: 호스트 1 · VM 3 · 임시 1</text>
+<rect x="720" y="60" width="320" height="270" rx="7" class="server"/><text x="880" y="90" text-anchor="middle" class="bold">Worker1</text>
+<rect x="732" y="124" width="296" height="34" rx="5" class="vm"/><text x="880" y="146" text-anchor="middle" class="small">OpenShift Virtualization · 이관 VM (NIC 2~3)</text>
+<rect x="732" y="168" width="80" height="66" rx="4" class="box-mgmt"/><text x="772" y="196" text-anchor="middle" class="small">노드 IP</text><text x="772" y="216" text-anchor="middle" class="small">기본 GW</text>
+<rect x="820" y="168" width="90" height="30" rx="4" class="box-svc"/><text x="865" y="188" text-anchor="middle" class="small">NAD 130</text>
+<rect x="918" y="168" width="52" height="30" rx="4" class="box-tbd"/><text x="944" y="188" text-anchor="middle" class="small">701</text>
+<rect x="976" y="168" width="52" height="30" rx="4" class="box-bk"/><text x="1002" y="188" text-anchor="middle" class="small">710</text>
+<rect x="820" y="206" width="90" height="28" rx="4" class="box-svc"/><text x="865" y="225" text-anchor="middle" class="small">br-svc</text>
+<rect x="918" y="206" width="110" height="28" rx="4" class="box-bk"/><text x="973" y="225" text-anchor="middle" class="small">br-bk</text>
+<rect x="732" y="244" width="80" height="30" rx="4" class="box-mgmt"/><text x="772" y="264" text-anchor="middle" class="small">bond0</text>
+<rect x="820" y="244" width="90" height="30" rx="4" class="box-svc"/><text x="865" y="264" text-anchor="middle" class="small">bond1</text>
+<rect x="918" y="244" width="110" height="30" rx="4" class="box-bk"/><text x="973" y="264" text-anchor="middle" class="small">bond2</text>
+<text x="772" y="294" text-anchor="middle" class="small">관리 ×2</text><text x="865" y="294" text-anchor="middle" class="small">서비스 ×2</text><text x="973" y="294" text-anchor="middle" class="small">nasbak ×2</text>
+<text x="880" y="316" text-anchor="middle" class="small">mode 1 · IPMI · FC HBA</text>
+<g class="worker-late"><rect x="1055" y="60" width="320" height="270" rx="7" class="server late-server"/><text x="1215" y="90" text-anchor="middle" class="bold">Worker2</text>
+<rect x="1067" y="124" width="296" height="34" rx="5" class="vm"/><text x="1215" y="146" text-anchor="middle" class="small">OpenShift Virtualization · 이관 VM (NIC 2~3)</text>
+<rect x="1067" y="168" width="80" height="66" rx="4" class="box-mgmt"/><text x="1107" y="196" text-anchor="middle" class="small">노드 IP</text><text x="1107" y="216" text-anchor="middle" class="small">기본 GW</text>
+<rect x="1155" y="168" width="90" height="30" rx="4" class="box-svc"/><text x="1200" y="188" text-anchor="middle" class="small">NAD 130</text>
+<rect x="1253" y="168" width="52" height="30" rx="4" class="box-tbd"/><text x="1279" y="188" text-anchor="middle" class="small">701</text>
+<rect x="1311" y="168" width="52" height="30" rx="4" class="box-bk"/><text x="1337" y="188" text-anchor="middle" class="small">710</text>
+<rect x="1155" y="206" width="90" height="28" rx="4" class="box-svc"/><text x="1200" y="225" text-anchor="middle" class="small">br-svc</text>
+<rect x="1253" y="206" width="110" height="28" rx="4" class="box-bk"/><text x="1308" y="225" text-anchor="middle" class="small">br-bk</text>
+<rect x="1067" y="244" width="80" height="30" rx="4" class="box-mgmt"/><text x="1107" y="264" text-anchor="middle" class="small">bond0</text>
+<rect x="1155" y="244" width="90" height="30" rx="4" class="box-svc"/><text x="1200" y="264" text-anchor="middle" class="small">bond1</text>
+<rect x="1253" y="244" width="110" height="30" rx="4" class="box-bk"/><text x="1308" y="264" text-anchor="middle" class="small">bond2</text>
+<text x="1107" y="294" text-anchor="middle" class="small">관리 ×2</text><text x="1200" y="294" text-anchor="middle" class="small">서비스 ×2</text><text x="1308" y="294" text-anchor="middle" class="small">nasbak ×2</text>
+<text x="1215" y="316" text-anchor="middle" class="small">mode 1 · IPMI · FC HBA</text></g>
+<path d="M290 330 V400" class="wire mgmt"/><path d="M325 330 V480" class="wire bk"/><circle cx="325" cy="480" r="4.5" class="dot"/><path d="M360 330 V520" class="wire ipmi"/>
+<path d="M555 330 V400" class="wire mgmt"/><path d="M640 330 V520" class="wire ipmi"/>
+<path d="M772 330 V400" class="wire mgmt"/><path d="M865 330 V440" class="wire svc"/><path d="M973 330 V480" class="wire bk"/><path d="M1005 330 V520" class="wire ipmi"/><path d="M1030 330 V570" class="wire fc"/>
+<path d="M1107 330 V400" class="wire mgmt"/><path d="M1200 330 V440" class="wire svc"/><path d="M1308 330 V480" class="wire bk"/><path d="M1340 330 V520" class="wire ipmi"/><path d="M1365 330 V570" class="wire fc"/>
+<path d="M200 400 H1380" class="bus mgmt"/><path d="M200 440 H1380" class="bus svc"/><path d="M200 480 H1380" class="bus bk"/><path d="M200 520 H1380" class="bus ipmi"/>
+<text x="20" y="405" class="small">관리망 · 태그 없음</text><text x="20" y="445" class="small">서비스망 · VLAN 130</text><text x="20" y="485" class="small">nasbak · VLAN 701·710</text><text x="20" y="525" class="small">IPMI망 (관리망 GW)</text>
+<circle cx="290" cy="400" r="4.5" class="dot"/><circle cx="360" cy="520" r="4.5" class="dot"/><circle cx="555" cy="400" r="4.5" class="dot"/><circle cx="640" cy="520" r="4.5" class="dot"/><circle cx="772" cy="400" r="4.5" class="dot"/><circle cx="865" cy="440" r="4.5" class="dot"/><circle cx="973" cy="480" r="4.5" class="dot"/><circle cx="1005" cy="520" r="4.5" class="dot"/><circle cx="1107" cy="400" r="4.5" class="dot"/><circle cx="1200" cy="440" r="4.5" class="dot"/><circle cx="1308" cy="480" r="4.5" class="dot"/><circle cx="1340" cy="520" r="4.5" class="dot"/><circle cx="230" cy="400" r="4.5" class="dot"/>
+<text x="1040" y="556" class="small">FC</text>
+<text x="20" y="600" class="small">소스 · 스토리지</text>
+<rect x="200" y="570" width="540" height="140" rx="8" class="panel panel-asis"/><text x="470" y="598" text-anchor="middle" class="bold">소스 VMware · 이관 완료까지 유지</text><text x="470" y="626" text-anchor="middle" class="small">vCenter(vc) + ESXi — 원본 HV (업무 VM 위치)</text><text x="470" y="650" text-anchor="middle" class="small">업무 VM 이관 / DNS VM(원본 HV로 이동)·vCLS는 이관 안 함</text><text x="470" y="674" text-anchor="middle" class="small">OCP 노드 → vCenter · ESXi 443 · 902/TCP (관리망)</text>
+<path d="M230 570 V400" class="wire mgmt"/><text x="238" y="556" class="small">443 · 902</text>
+<path d="M740 640 H780" class="wire fc"/><text x="760" y="632" text-anchor="middle" class="small">FC</text>
+<rect x="780" y="570" width="600" height="140" rx="8" class="box-st"/><text x="1080" y="598" text-anchor="middle" class="bold">Dell EMC 스토리지 · SYMMETRIX · FC SAN</text><text x="1080" y="626" text-anchor="middle" class="small">원본: VMFS6 데이터스토어 (FC LUN)</text>
+<text x="200" y="736" class="small">Master KVM 호스트·Bastion은 FC SAN에 연결하지 않습니다. 양 망 Bastion은 etcd 백업을 위해 NAS/BK 2포트를 신규 포설하고 bond2를 구성합니다.</text><text x="200" y="758" class="small">Master KVM 호스트는 관리망만 사용합니다(NAS/BK 포설 없음). IP 대역 미확정 · 포트 속도: IPMI 1G, 그 외 10G</text>
+</svg></div>
+<h3>그림 2. 망별 장비 재구성 (AS-IS → TO-BE)</h3>
+<div class="legend"><span><i class="old-key"></i>기존 HV (VMware)</span><span><i class="new-key"></i>+ 신규 장비 (재활용 TNS-2100)</span><span><i class="chg-key"></i>지금 재구성</span><span><i class="late-arrow-key"></i>MTV 완료 후 전환</span><span><i class="mtv-key"></i>MTV 이관 수신 (VM 이동)</span></div>
+<h4>외부망 — 기존 HV 2대 + 재활용 TNS-2100 2대</h4>
+<div class="remap"><div class="remap-row remap-head"><div></div><div class="remap-colhead ch-asis">AS-IS · 현재 VMware</div><div></div><div class="remap-colhead ch-tobe">TO-BE · OpenShift</div></div>
+<div class="remap-row">
+<div class="remap-step s-new">1</div>
+<div class="remap-box is-empty"></div>
+<div class="remap-arrow a-new"><span class="glyph">+</span><span class="lbl">신규</span></div>
+<div class="remap-box is-new"><div class="ttl">Bastion</div><div class="sub">재활용 TNS-2100 #A · RHEL 9.8</div><div class="spec">TNS-2100 · 36코어 · 576GB</div><div class="ip-need"><span class="badge-ip">● IP 2개</span></div><div class="meta">DNS · LB · NTP · 미러 레지스트리 · Ignition HTTP</div></div>
+</div>
+<div class="remap-row">
+<div class="remap-step s-new">2</div>
+<div class="remap-box is-empty"></div>
+<div class="remap-arrow a-new"><span class="glyph">+</span><span class="lbl">신규</span></div>
+<div class="remap-box is-new"><div class="ttl">Master</div><div class="sub">재활용 TNS-2100 #B</div><div class="spec">TNS-2100 · 36코어 · 576GB</div><div class="ip-need"><span class="badge-ip">● IP 4개</span></div><div class="kvm"><div class="kvm-head">KVM 하이퍼바이저 (RHEL 9.8) 위 <b>Master 노드 VM × 3</b></div><div class="kvm-vms"><div class="kvm-vm"><b class="vm-mark">VM</b><span class="vm-name">master-0</span><span class="vm-role">Control Plane · etcd</span></div><div class="kvm-vm"><b class="vm-mark">VM</b><span class="vm-name">master-1</span><span class="vm-role">Control Plane · etcd</span></div><div class="kvm-vm"><b class="vm-mark">VM</b><span class="vm-name">master-2</span><span class="vm-role">Control Plane · etcd</span></div></div><div class="kvm-foot">+ Bootstrap 임시 VM (설치 후 삭제)</div></div></div>
+</div>
+<div class="remap-row">
+<div class="remap-step s-chg">3</div>
+<div class="remap-box"><div class="ttl">HV#02</div><div class="sub">VMware · DNS VM · vCLS</div><div class="meta">TR2210 H4 · 48코어 · 1TB</div></div>
+<div class="remap-arrow a-chg"><span class="glyph">→</span><span class="lbl">재구성</span></div>
+<div class="remap-box is-worker"><div class="ttl">Worker1</div><div class="sub">기존 HV#02 재구성 · RHCOS 노드 · 기존 IP 재사용</div><div class="meta">DNS VM → HV#01 이동 → 호스트 제거·LUN 매핑 해제 후 편입 · MTV 이전 선구축</div><span class="chip">④ MTV 이관 수신 · 업무 VM 11대 (HV#01)</span></div>
+</div>
+<div class="remap-row">
+<div class="remap-step s-late">5</div>
+<div class="remap-box"><div class="ttl">HV#01</div><div class="sub">VMware · 업무 VM 11 + vCenter · DNS VM(HV#02에서 이동)</div><div class="meta">TR2210 H4 · 48코어 · 1TB · ④ 업무 VM 11대 MTV 이관 후 원본 비워짐</div></div>
+<div class="remap-arrow a-late"><span class="glyph">→</span><span class="lbl">MTV 완료 후<br>전환</span></div>
+<div class="remap-box is-late"><div class="ttl">Worker2</div><div class="sub">기존 HV#01 · 기존 IP 재사용</div><div class="meta">MTV 완료 후 전환 · 전환 전까지 VMware 원본 유지 · DNS VM은 vCenter 정리 시 삭제</div></div>
+</div>
+</div>
+<div class="steps step-kind"><div class="step k-add"><strong><span class="stepno n-add">1</span>Bastion 구축</strong><p>+ 재활용 TNS-2100 #A<br>DNS·LB·미러 레지스트리·NTP<br>vCenter·ESXi 조회 레코드 등록<br>NAS/BK 2포트 신규 포설(etcd 백업)</p><small>HV 작업과 무관하게 먼저 시작 · 2차(11월) 최초 구축</small></div><div class="step k-add"><strong><span class="stepno n-add">2</span>Master 구축</strong><p>+ 재활용 TNS-2100 #B<br>KVM 호스트 + Master VM 3식<br>Bootstrap으로 클러스터 설치</p><small>Bootstrap은 설치 후 삭제</small></div><div class="step k-chg"><strong><span class="stepno n-chg">3</span>Worker1 재구성</strong><p>DNS VM → HV#01 이동<br>호스트 제거·LUN 매핑 해제<br>RHCOS 설치 → 클러스터 편입</p><small>Worker2는 아직 없음</small></div><div class="step k-mtv"><strong><span class="stepno n-mtv">4</span>MTV 이관</strong><p>HV#01 업무 VM 11대<br>→ Worker1 (단독 운영)</p><small>외부망 먼저 진행</small></div><div class="step k-late"><strong><span class="stepno n-late">5</span>Worker2 전환</strong><p>MTV 완료 확인<br>vCenter·DNS VM 정리<br>HV#01 → Worker2 편입</p><small>전환 전까지 VMware 원본 유지</small></div></div>
+<h4>내부망 — 기존 HV 3대 + 재활용 TNS-2100 1대</h4>
+<div class="remap"><div class="remap-row remap-head"><div></div><div class="remap-colhead ch-asis">AS-IS · 현재 VMware</div><div></div><div class="remap-colhead ch-tobe">TO-BE · OpenShift</div></div>
+<div class="remap-row">
+<div class="remap-step s-new">1</div>
+<div class="remap-box is-empty"></div>
+<div class="remap-arrow a-new"><span class="glyph">+</span><span class="lbl">신규</span></div>
+<div class="remap-box is-new"><div class="ttl">Bastion</div><div class="sub">재활용 TNS-2100 · RHEL 9.8</div><div class="spec">TNS-2100 · 36코어 · 576GB</div><div class="ip-need"><span class="badge-ip">● IP 2개</span></div><div class="meta">DNS · LB · NTP · 미러 레지스트리 · Ignition HTTP</div></div>
+</div>
+<div class="remap-row">
+<div class="remap-step s-chg">2</div>
+<div class="remap-box"><div class="ttl">HV#03</div><div class="sub">VMware · DNS VM · vCLS</div><div class="meta">TR2210 H4 · 48코어 · 1TB</div></div>
+<div class="remap-arrow a-chg"><span class="glyph">→</span><span class="lbl">재구성</span></div>
+<div class="remap-box is-worker"><div class="ttl">Master</div><div class="sub">기존 HV#03 재구성 · 호스트 관리망 IP 없음(br0)</div><div class="ip-need"><span class="badge-ip">● IP 4개</span></div><div class="meta">DNS VM → HV#02 이동 → 호스트 제거·LUN 매핑 해제 후 재구성</div><div class="kvm"><div class="kvm-head">KVM 하이퍼바이저 (RHEL 9.8) 위 <b>Master 노드 VM × 3</b></div><div class="kvm-vms"><div class="kvm-vm"><b class="vm-mark">VM</b><span class="vm-name">master-0</span><span class="vm-role">Control Plane · etcd</span></div><div class="kvm-vm"><b class="vm-mark">VM</b><span class="vm-name">master-1</span><span class="vm-role">Control Plane · etcd</span></div><div class="kvm-vm"><b class="vm-mark">VM</b><span class="vm-name">master-2</span><span class="vm-role">Control Plane · etcd</span></div></div><div class="kvm-foot">+ Bootstrap 임시 VM (설치 후 삭제)</div></div></div>
+</div>
+<div class="remap-row">
+<div class="remap-step s-chg">3</div>
+<div class="remap-box"><div class="ttl">HV#01</div><div class="sub">VMware · vCLS만</div><div class="meta">TR2210 H4 · 48코어 · 1TB</div></div>
+<div class="remap-arrow a-chg"><span class="glyph">→</span><span class="lbl">재구성</span></div>
+<div class="remap-box is-worker"><div class="ttl">Worker1</div><div class="sub">기존 HV#01 재구성 · RHCOS 노드 · 기존 IP 재사용</div><div class="meta">호스트 제거·LUN 매핑 해제 후 편입 · MTV 이전 선구축</div><span class="chip">④ MTV 이관 수신 · 업무 VM 24대 (HV#02)</span></div>
+</div>
+<div class="remap-row">
+<div class="remap-step s-late">5</div>
+<div class="remap-box"><div class="ttl">HV#02</div><div class="sub">VMware · 업무 VM 24 + vCenter · DNS VM(HV#03에서 이동)</div><div class="meta">TR2210 H4 · 48코어 · 1TB · ④ 업무 VM 24대 MTV 이관 후 원본 비워짐</div></div>
+<div class="remap-arrow a-late"><span class="glyph">→</span><span class="lbl">MTV 완료 후<br>전환</span></div>
+<div class="remap-box is-late"><div class="ttl">Worker2</div><div class="sub">기존 HV#02 · 기존 IP 재사용</div><div class="meta">MTV 완료 후 전환 · 전환 전까지 VMware 원본 유지 · DNS VM은 vCenter 정리 시 삭제</div></div>
+</div>
+</div>
+<div class="steps step-kind"><div class="step k-add"><strong><span class="stepno n-add">1</span>Bastion 구축</strong><p>+ 재활용 TNS-2100<br>DNS·LB·미러 레지스트리·NTP<br>vCenter·ESXi 조회 레코드 등록<br>NAS/BK 2포트 신규 포설(etcd 백업)</p><small>HV 작업과 무관하게 먼저 시작 · 2차(11월) 최초 구축</small></div><div class="step k-chg"><strong><span class="stepno n-chg">2</span>Master 재구성</strong><p>DNS VM → HV#02 이동<br>KVM 호스트 + Master VM 3식<br>Bootstrap으로 클러스터 설치</p><small>Bootstrap은 설치 후 삭제</small></div><div class="step k-chg"><strong><span class="stepno n-chg">3</span>Worker1 재구성</strong><p>HV#01 (vCLS만)<br>호스트 제거·LUN 매핑 해제<br>RHCOS 설치 → 클러스터 편입</p><small>Worker2는 아직 없음</small></div><div class="step k-mtv"><strong><span class="stepno n-mtv">4</span>MTV 이관</strong><p>HV#02 업무 VM 24대<br>→ Worker1 (단독 운영)</p><small>외부망 이관 후 진행</small></div><div class="step k-late"><strong><span class="stepno n-late">5</span>Worker2 전환</strong><p>MTV 완료 확인<br>vCenter·DNS VM 정리<br>HV#02 → Worker2 편입</p><small>전환 전까지 VMware 원본 유지</small></div></div>
+</section>
+
+<section id="net"><h2>03. 네트워크 설계</h2>
+<h3>구성 기준</h3><div class="tablewrap"><table><thead><tr><th>항목</th><th>내용</th></tr></thead><tbody>
+<tr><td>bond 매핑</td><td>관리망 bond0(태그 없음) / 서비스망 bond1(VLAN 130) / nasbak망 bond2(VLAN 710). 각 2포트 · mode 1(active-backup) · 10G, IPMI 1G</td></tr>
+<tr><td>기본 게이트웨이</td><td>관리망(bond0)에만 둠. 노드 간 통신·API·Ingress·MTV 이관(443·902)도 관리망</td></tr>
+<tr><td>Worker 브리지</td><td>NNCP로 br-svc(bond1)·br-bk(bond2) 생성, 노드 IP 없음. VLAN은 NAD에서 태깅</td></tr>
+<tr><td>Bastion 포트</td><td>관리 2포트 + NAS/BK 2포트 신규 포설(etcd 백업). nasbak IP·VLAN <span class="tbd">TBD</span></td></tr>
+<tr><td>Master KVM 호스트</td><td>관리 2포트 bond0 위 br0에 Master VM 3식·Bootstrap 연결 · 호스트 관리망 IP 없음</td></tr>
+<tr><td>클러스터 네트워크</td><td>OVNKubernetes · machineNetwork = 관리망 · clusterNetwork 10.128.0.0/14 · serviceNetwork 172.30.0.0/16(기본값, 사내 대역 중복 <span class="tbd">TBD</span>)</td></tr>
+<tr><td>DNS (Bastion)</td><td>api · api-int · *.apps → Bastion LB, 노드 A·PTR, vCenter·원본 ESXi A 레코드(MTV 접속용). VMware 관리용 이름 해석은 기존 DNS VM이 계속 담당</td></tr>
+<tr><td>Bastion 서비스</td><td>API 6443 · MCS 22623 · Ingress 80/443 · 미러 레지스트리 8443 · NTP 123/UDP · Ignition HTTP(포트 <span class="tbd">TBD</span>)</td></tr>
+<tr><td>NTP</td><td>망별 NTP 서버 → Bastion(chrony) → 노드(chrony MachineConfig)·KVM 호스트</td></tr>
+<tr><td>VM NIC 매핑</td><td>서비스 130 → br-svc, nasbak 710 → br-bk, MGMT 포트그룹 → 매핑 안 함</td></tr>
+<tr><td>VLAN 701</td><td>구형 NFS용. 이관 시점에 사용 중이면 NAD 추가 <span class="tbd">TBD</span></td></tr>
+<tr><td>MTU</td><td>1500 <span class="tbd">TBD</span></td></tr>
+</tbody></table></div>
+<div class="formblock"><h3>서버별 인터페이스 · IP 기입표 — 신규 IP 망별 6개 (관리망 5 · nasbak 1)</h3>
+<h4>외부망</h4>
+<div class="tablewrap"><table class="ipform ipnet"><tbody>
+<tr><th>관리망 대역 / GW</th><td class="blank" contenteditable="true" spellcheck="false" data-f="f62"></td><th>nasbak 대역 / VLAN</th><td class="blank" contenteditable="true" spellcheck="false" data-f="f63"></td></tr>
+<tr><th>NTP 서버</th><td class="blank" contenteditable="true" spellcheck="false" data-f="f64"></td><th>base domain</th><td class="blank" contenteditable="true" spellcheck="false" data-f="f65"></td></tr>
+</tbody></table></div>
+<p class="sub-cap">물리 서버</p>
+<div class="tablewrap"><table class="ipform nic2"><thead><tr><th>서버</th><th>호스트명</th><th>망 · bond</th><th>인터페이스 1</th><th>인터페이스 2</th><th>IP</th><th>비고</th></tr></thead><tbody>
+<tr class="grp"><td class="srv" rowspan="3">Bastion<small>TNS-2100 #A · 신규</small></td><td class="blank" rowspan="3" contenteditable="true" spellcheck="false" data-f="f237"></td><td class="nb"><span class="net n-mgmt">관리망</span><b>bond0</b></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f238"></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f239"></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f240"></td><td class="nt">신규 IP</td></tr>
+<tr><td class="nb"><span class="net n-bk">nasbak</span><b>bond2</b></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f241"></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f242"></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f243"></td><td class="nt">신규 IP · etcd 백업</td></tr>
+<tr><td class="nb"><span class="net n-ipmi">IPMI</span></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f244"></td><td class="none">–</td><td class="none">–</td><td class="nt"></td></tr>
+<tr class="grp"><td class="srv" rowspan="2">Master KVM 호스트<small>TNS-2100 #B</small></td><td class="blank" rowspan="2" contenteditable="true" spellcheck="false" data-f="f245"></td><td class="nb"><span class="net n-mgmt">관리망</span><b>bond0</b></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f246"></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f247"></td><td class="none">IP 없음</td><td class="nt">br0 · Master VM 연결</td></tr>
+<tr><td class="nb"><span class="net n-ipmi">IPMI</span></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f248"></td><td class="none">–</td><td class="none">–</td><td class="nt"></td></tr>
+<tr class="grp"><td class="srv" rowspan="4">Worker1<small>HV#02</small></td><td class="blank" rowspan="4" contenteditable="true" spellcheck="false" data-f="f249"></td><td class="nb"><span class="net n-mgmt">관리망</span><b>bond0</b></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f250"></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f251"></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f252"></td><td class="nt">기존 HV IP · br-ex(OVN)</td></tr>
+<tr><td class="nb"><span class="net n-svc">서비스</span><b>bond1</b></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f253"></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f254"></td><td class="none">IP 없음</td><td class="nt">br-svc · VLAN 130</td></tr>
+<tr><td class="nb"><span class="net n-bk">nasbak</span><b>bond2</b></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f255"></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f256"></td><td class="none">IP 없음</td><td class="nt">br-bk · VLAN 710</td></tr>
+<tr><td class="nb"><span class="net n-ipmi">IPMI</span></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f257"></td><td class="none">–</td><td class="none">–</td><td class="nt"></td></tr>
+<tr class="grp"><td class="srv" rowspan="4">Worker2<small>HV#01 · MTV 완료 후</small></td><td class="blank" rowspan="4" contenteditable="true" spellcheck="false" data-f="f258"></td><td class="nb"><span class="net n-mgmt">관리망</span><b>bond0</b></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f259"></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f260"></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f261"></td><td class="nt">기존 HV IP · br-ex(OVN)</td></tr>
+<tr><td class="nb"><span class="net n-svc">서비스</span><b>bond1</b></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f262"></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f263"></td><td class="none">IP 없음</td><td class="nt">br-svc · VLAN 130</td></tr>
+<tr><td class="nb"><span class="net n-bk">nasbak</span><b>bond2</b></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f264"></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f265"></td><td class="none">IP 없음</td><td class="nt">br-bk · VLAN 710</td></tr>
+<tr><td class="nb"><span class="net n-ipmi">IPMI</span></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f266"></td><td class="none">–</td><td class="none">–</td><td class="nt"></td></tr>
+</tbody></table></div>
+<p class="sub-cap">Master · bootstrap VM (Master KVM 호스트 br0 연결 · NIC 1개)</p>
+<div class="tablewrap"><table class="ipform nic2 vmtbl"><thead><tr><th>VM</th><th>호스트명</th><th>인터페이스</th><th>관리망 IP</th><th>비고</th></tr></thead><tbody>
+<tr><td class="srv">master-0</td><td class="blank" contenteditable="true" spellcheck="false" data-f="f267"></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f268"></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f269"></td><td class="nt">신규 IP</td></tr>
+<tr><td class="srv">master-1</td><td class="blank" contenteditable="true" spellcheck="false" data-f="f270"></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f271"></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f272"></td><td class="nt">신규 IP</td></tr>
+<tr><td class="srv">master-2</td><td class="blank" contenteditable="true" spellcheck="false" data-f="f273"></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f274"></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f275"></td><td class="nt">신규 IP</td></tr>
+<tr><td class="srv">bootstrap<small>임시</small></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f276"></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f277"></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f278"></td><td class="nt">신규 IP · bootstrap 구성 완료 후 반납</td></tr>
+</tbody></table></div>
+<h4>내부망</h4>
+<div class="tablewrap"><table class="ipform ipnet"><tbody>
+<tr><th>관리망 대역 / GW</th><td class="blank" contenteditable="true" spellcheck="false" data-f="f83"></td><th>nasbak 대역 / VLAN</th><td class="blank" contenteditable="true" spellcheck="false" data-f="f84"></td></tr>
+<tr><th>NTP 서버</th><td class="blank" contenteditable="true" spellcheck="false" data-f="f85"></td><th>base domain</th><td class="blank" contenteditable="true" spellcheck="false" data-f="f86"></td></tr>
+</tbody></table></div>
+<p class="sub-cap">물리 서버</p>
+<div class="tablewrap"><table class="ipform nic2"><thead><tr><th>서버</th><th>호스트명</th><th>망 · bond</th><th>인터페이스 1</th><th>인터페이스 2</th><th>IP</th><th>비고</th></tr></thead><tbody>
+<tr class="grp"><td class="srv" rowspan="3">Bastion<small>TNS-2100 · 신규</small></td><td class="blank" rowspan="3" contenteditable="true" spellcheck="false" data-f="f279"></td><td class="nb"><span class="net n-mgmt">관리망</span><b>bond0</b></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f280"></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f281"></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f282"></td><td class="nt">신규 IP</td></tr>
+<tr><td class="nb"><span class="net n-bk">nasbak</span><b>bond2</b></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f283"></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f284"></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f285"></td><td class="nt">신규 IP · etcd 백업</td></tr>
+<tr><td class="nb"><span class="net n-ipmi">IPMI</span></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f286"></td><td class="none">–</td><td class="none">–</td><td class="nt"></td></tr>
+<tr class="grp"><td class="srv" rowspan="2">Master KVM 호스트<small>HV#03</small></td><td class="blank" rowspan="2" contenteditable="true" spellcheck="false" data-f="f287"></td><td class="nb"><span class="net n-mgmt">관리망</span><b>bond0</b></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f288"></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f289"></td><td class="none">IP 없음</td><td class="nt">br0 · Master VM 연결</td></tr>
+<tr><td class="nb"><span class="net n-ipmi">IPMI</span></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f290"></td><td class="none">–</td><td class="none">–</td><td class="nt"></td></tr>
+<tr class="grp"><td class="srv" rowspan="4">Worker1<small>HV#01</small></td><td class="blank" rowspan="4" contenteditable="true" spellcheck="false" data-f="f291"></td><td class="nb"><span class="net n-mgmt">관리망</span><b>bond0</b></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f292"></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f293"></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f294"></td><td class="nt">기존 HV IP · br-ex(OVN)</td></tr>
+<tr><td class="nb"><span class="net n-svc">서비스</span><b>bond1</b></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f295"></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f296"></td><td class="none">IP 없음</td><td class="nt">br-svc · VLAN 130</td></tr>
+<tr><td class="nb"><span class="net n-bk">nasbak</span><b>bond2</b></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f297"></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f298"></td><td class="none">IP 없음</td><td class="nt">br-bk · VLAN 710</td></tr>
+<tr><td class="nb"><span class="net n-ipmi">IPMI</span></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f299"></td><td class="none">–</td><td class="none">–</td><td class="nt"></td></tr>
+<tr class="grp"><td class="srv" rowspan="4">Worker2<small>HV#02 · MTV 완료 후</small></td><td class="blank" rowspan="4" contenteditable="true" spellcheck="false" data-f="f300"></td><td class="nb"><span class="net n-mgmt">관리망</span><b>bond0</b></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f301"></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f302"></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f303"></td><td class="nt">기존 HV IP · br-ex(OVN)</td></tr>
+<tr><td class="nb"><span class="net n-svc">서비스</span><b>bond1</b></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f304"></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f305"></td><td class="none">IP 없음</td><td class="nt">br-svc · VLAN 130</td></tr>
+<tr><td class="nb"><span class="net n-bk">nasbak</span><b>bond2</b></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f306"></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f307"></td><td class="none">IP 없음</td><td class="nt">br-bk · VLAN 710</td></tr>
+<tr><td class="nb"><span class="net n-ipmi">IPMI</span></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f308"></td><td class="none">–</td><td class="none">–</td><td class="nt"></td></tr>
+</tbody></table></div>
+<p class="sub-cap">Master · bootstrap VM (Master KVM 호스트 br0 연결 · NIC 1개)</p>
+<div class="tablewrap"><table class="ipform nic2 vmtbl"><thead><tr><th>VM</th><th>호스트명</th><th>인터페이스</th><th>관리망 IP</th><th>비고</th></tr></thead><tbody>
+<tr><td class="srv">master-0</td><td class="blank" contenteditable="true" spellcheck="false" data-f="f309"></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f310"></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f311"></td><td class="nt">신규 IP</td></tr>
+<tr><td class="srv">master-1</td><td class="blank" contenteditable="true" spellcheck="false" data-f="f312"></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f313"></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f314"></td><td class="nt">신규 IP</td></tr>
+<tr><td class="srv">master-2</td><td class="blank" contenteditable="true" spellcheck="false" data-f="f315"></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f316"></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f317"></td><td class="nt">신규 IP</td></tr>
+<tr><td class="srv">bootstrap<small>임시</small></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f318"></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f319"></td><td class="blank" contenteditable="true" spellcheck="false" data-f="f320"></td><td class="nt">신규 IP · bootstrap 구성 완료 후 반납</td></tr>
+</tbody></table></div>
+<p class="cap">bond: 인터페이스 1·2에 구성 포트를 하나씩 기입(실사 후) · 2포트 mode 1(active-backup) 10G, IPMI 1G · VLAN은 NAD에서 태깅 · Master·bootstrap은 VM이라 NIC 이중화 없음</p>
+</div>
+<h3>방화벽 신청</h3><div class="tablewrap"><table><thead><tr><th>출발지</th><th>목적지</th><th>포트</th><th>용도</th><th>신청</th></tr></thead><tbody>
+<tr><td>망별 Bastion</td><td>망별 NTP 서버</td><td>123/UDP</td><td>Bastion 시간 동기화</td><td>1차(10월) · NTP IP <span class="tbd">TBD</span></td></tr>
+<tr><td>망별 Bastion</td><td>통합 백업스토리지</td><td><span class="tbd">TBD</span></td><td>etcd 백업 보관(nasbak망)</td><td>백업 담당 확인 · Bastion 접근 허용</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="checklist"><h2>04. 설치 체크리스트</h2>
+<div class="ck-bar"><button type="button" class="ck-reset" id="ckReset">체크 초기화</button></div>
+<div class="phase"><div class="phase-head"><span class="phase-no">1</span><b>Bastion 구축</b><small>재활용 TNS-2100 · HV 작업과 무관하게 먼저 시작</small></div>
+<table class="cktable"><thead><tr><th class="c-ck">외부망</th><th class="c-ck">내부망</th><th>작업</th><th>확인 기준</th></tr></thead><tbody>
+<tr><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="e1"><span></span></label></td><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="i1"><span></span></label></td><td>RHEL 9.8 설치 · bond0(관리) 구성 · 관리망 IP 설정</td><td>관리망 GW 통신</td></tr>
+<tr><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="e2"><span></span></label></td><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="i2"><span></span></label></td><td>NAS/BK 2포트 bond2 구성 · nasbak IP 설정</td><td>통합 백업스토리지 접근</td></tr>
+<tr><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="e3"><span></span></label></td><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="i3"><span></span></label></td><td>chrony: 망별 NTP 서버 동기화</td><td>chronyc sources 동기화</td></tr>
+<tr><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="e4"><span></span></label></td><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="i4"><span></span></label></td><td>DNS: api · api-int · *.apps, 노드 A·PTR 레코드 · vCenter·원본 ESXi A 레코드</td><td>정·역방향 조회 · vCenter·ESXi 이름 조회</td></tr>
+<tr><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="e5"><span></span></label></td><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="i5"><span></span></label></td><td>LB: 6443 · 22623 · 80 · 443</td><td>포트 리슨</td></tr>
+<tr><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="e6"><span></span></label></td><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="i6"><span></span></label></td><td>Ignition HTTP 서버 구성</td><td>HTTP 응답</td></tr>
+<tr><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="e7"><span></span></label></td><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="i7"><span></span></label></td><td>미러 레지스트리(:8443) 설치 · OCP 4.22·Operator 이미지 반입</td><td>카탈로그 조회</td></tr>
+</tbody></table></div>
+<div class="phase"><div class="phase-head"><span class="phase-no">2</span><b>DNS VM 이동</b><small>VMware 관리용 DNS VM → MTV 원본 HV · 재구성 전</small></div>
+<table class="cktable"><thead><tr><th class="c-ck">외부망</th><th class="c-ck">내부망</th><th>작업</th><th>확인 기준</th></tr></thead><tbody>
+<tr><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="e9"><span></span></label></td><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="i9"><span></span></label></td><td>DNS VM을 원본 HV로 이동 (외부 HV#02 → HV#01 · 내부 HV#03 → HV#02, vMotion)</td><td>원본 HV에서 기동</td></tr>
+<tr><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="e10"><span></span></label></td><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="i10"><span></span></label></td><td>이동 후 vCenter·ESXi 이름 해석 확인</td><td>vCenter·ESXi 연결</td></tr>
+</tbody></table></div>
+<div class="phase"><div class="phase-head"><span class="phase-no">3</span><b>재구성 HV 준비</b><small>외부 HV#02 · 내부 HV#03(Master), HV#01</small></div>
+<table class="cktable"><thead><tr><th class="c-ck">외부망</th><th class="c-ck">내부망</th><th>작업</th><th>확인 기준</th></tr></thead><tbody>
+<tr><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="e11"><span></span></label></td><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="i11"><span></span></label></td><td>ESXi 설정 백업</td><td>백업 파일 보관</td></tr>
+<tr><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="e12"><span></span></label></td><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="i12"><span></span></label></td><td>vCenter에서 호스트 제거</td><td>인벤토리에서 제외</td></tr>
+<tr><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="e13"><span></span></label></td><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="i13"><span></span></label></td><td>VMFS LUN 매핑 해제 요청 (스토리지 담당)</td><td>LUN 미노출</td></tr>
+</tbody></table></div>
+<div class="phase"><div class="phase-head"><span class="phase-no">4</span><b>Ignition 준비</b><small>Bastion</small></div>
+<table class="cktable"><thead><tr><th class="c-ck">외부망</th><th class="c-ck">내부망</th><th>작업</th><th>확인 기준</th></tr></thead><tbody>
+<tr><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="e-nic"><span></span></label></td><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="i-nic"><span></span></label></td><td>서버별 물리 인터페이스명 확인 (RHCOS live ISO · ip link) → NIC 표 기입</td><td>NIC 표 인터페이스 칸 완료</td></tr>
+<tr><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="e14"><span></span></label></td><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="i14"><span></span></label></td><td>install-config 작성 (platform: none · 미러 · trust bundle)</td><td>파일 백업</td></tr>
+<tr><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="e15"><span></span></label></td><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="i15"><span></span></label></td><td>manifests 생성 · chrony MachineConfig 추가</td><td>manifest 확인</td></tr>
+<tr><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="e16"><span></span></label></td><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="i16"><span></span></label></td><td>Ignition 생성 → HTTP 배포</td><td>curl 조회</td></tr>
+</tbody></table></div>
+<div class="phase"><div class="phase-head"><span class="phase-no">5</span><b>Control Plane 설치</b><small>Master KVM 호스트</small></div>
+<table class="cktable"><thead><tr><th class="c-ck">외부망</th><th class="c-ck">내부망</th><th>작업</th><th>확인 기준</th></tr></thead><tbody>
+<tr><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="e17"><span></span></label></td><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="i17"><span></span></label></td><td>KVM 호스트 RHEL 9.8 + libvirt · bond0 위 br0</td><td>virsh 동작</td></tr>
+<tr><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="e18"><span></span></label></td><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="i18"><span></span></label></td><td>Bootstrap · master-0/1/2 VM 생성 (autostart)</td><td>VM 4대 기동</td></tr>
+<tr><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="e19"><span></span></label></td><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="i19"><span></span></label></td><td>RHCOS 설치 (Ignition URL 지정)</td><td>노드 부팅</td></tr>
+<tr><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="e20"><span></span></label></td><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="i20"><span></span></label></td><td>bootstrap-complete 대기</td><td>wait-for bootstrap-complete</td></tr>
+<tr><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="e21"><span></span></label></td><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="i21"><span></span></label></td><td>LB에서 Bootstrap 제외 → Bootstrap VM 삭제</td><td>API 응답 유지</td></tr>
+<tr><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="e22"><span></span></label></td><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="i22"><span></span></label></td><td>etcd 상태 · 디스크 fsync 지연 측정</td><td>etcd 3 member · 10ms 이하</td></tr>
+</tbody></table></div>
+<div class="phase"><div class="phase-head"><span class="phase-no">6</span><b>Worker1 편입</b><small>외부 HV#02 · 내부 HV#01</small></div>
+<table class="cktable"><thead><tr><th class="c-ck">외부망</th><th class="c-ck">내부망</th><th>작업</th><th>확인 기준</th></tr></thead><tbody>
+<tr><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="e23"><span></span></label></td><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="i23"><span></span></label></td><td>RHCOS 설치 (기존 HV IP 재사용)</td><td>노드 부팅</td></tr>
+<tr><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="e24"><span></span></label></td><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="i24"><span></span></label></td><td>CSR 승인</td><td>노드 Ready</td></tr>
+<tr><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="e25"><span></span></label></td><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="i25"><span></span></label></td><td>mastersSchedulable: false · Ingress replicas 1</td><td>Ingress Pod 기동</td></tr>
+<tr><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="e26"><span></span></label></td><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="i26"><span></span></label></td><td>wait-for install-complete</td><td>클러스터 Operator 정상</td></tr>
+</tbody></table></div>
+<div class="phase"><div class="phase-head"><span class="phase-no">7</span><b>Operator 구성</b><small>클러스터</small></div>
+<table class="cktable"><thead><tr><th class="c-ck">외부망</th><th class="c-ck">내부망</th><th>작업</th><th>확인 기준</th></tr></thead><tbody>
+<tr><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="e27"><span></span></label></td><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="i27"><span></span></label></td><td>OpenShift Virtualization · NMState 설치</td><td>Operator 정상</td></tr>
+<tr><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="e28"><span></span></label></td><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="i28"><span></span></label></td><td>NNCP br-svc · br-bk, NAD 생성</td><td>테스트 VM 통신</td></tr>
+<tr><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="e30"><span></span></label></td><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="i30"><span></span></label></td><td>MTV Operator · vSphere Provider</td><td>Provider Ready</td></tr>
+<tr><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="e31"><span></span></label></td><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="i31"><span></span></label></td><td>etcd 첫 백업 → Bastion 수집 → nasbak 보관</td><td>백업 파일 확인</td></tr>
+</tbody></table></div>
+<div class="phase"><div class="phase-head"><span class="phase-no">8</span><b>MTV 이관</b><small>외부망 먼저 → 내부망</small></div>
+<table class="cktable"><thead><tr><th class="c-ck">외부망</th><th class="c-ck">내부망</th><th>작업</th><th>확인 기준</th></tr></thead><tbody>
+<tr><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="e32"><span></span></label></td><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="i32"><span></span></label></td><td>NetworkMap · StorageMap 생성</td><td>Map Ready</td></tr>
+<tr><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="e33"><span></span></label></td><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="i33"><span></span></label></td><td>시험 이관 (Linux 1 · Windows 1)</td><td>부팅 · 네트워크 · IP 유지</td></tr>
+<tr><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="e34"><span></span></label></td><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="i34"><span></span></label></td><td>전송 속도 측정 → 회차 · 동시 이관 수 확정</td><td>회차표 갱신</td></tr>
+<tr><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="e35"><span></span></label></td><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="i35"><span></span></label></td><td>Plan 실행 (회차별, 최대 10대)</td><td>VM 기동 · 서비스 확인</td></tr>
+<tr><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="e36"><span></span></label></td><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="i36"><span></span></label></td><td>원본 VM 전원 종료 · 보관</td><td>vCenter 확인</td></tr>
+</tbody></table></div>
+<div class="phase"><div class="phase-head"><span class="phase-no">9</span><b>Worker2 전환</b><small>MTV 완료 후 · 외부 HV#01 · 내부 HV#02</small></div>
+<table class="cktable"><thead><tr><th class="c-ck">외부망</th><th class="c-ck">내부망</th><th>작업</th><th>확인 기준</th></tr></thead><tbody>
+<tr><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="e37"><span></span></label></td><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="i37"><span></span></label></td><td>MTV 완료 확인 (전 VM 이관 · 서비스 확인)</td><td>이관 대상 전체 완료</td></tr>
+<tr><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="e38"><span></span></label></td><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="i38"><span></span></label></td><td>vCenter에서 호스트 제거 · VMFS LUN 매핑 해제 요청</td><td>LUN 미노출</td></tr>
+<tr><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="e41"><span></span></label></td><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="i41"><span></span></label></td><td>DNS VM 삭제 (vCenter 정리와 함께 · 보관·원복 기준 충족 후)</td><td>DNS VM 없음</td></tr>
+<tr><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="e39"><span></span></label></td><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="i39"><span></span></label></td><td>RHCOS 설치 → CSR 승인 → Worker2 편입</td><td>노드 Ready</td></tr>
+<tr><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="e40"><span></span></label></td><td class="c-ck"><label class="ck"><input type="checkbox" data-ck="i40"><span></span></label></td><td>Ingress replicas 2 · Live Migration 시험</td><td>VM 이동 성공</td></tr>
+</tbody></table></div>
+<script>
+(function(){
+  var KEY='sgis-ocp-v16-checks', st={};
+  try{st=JSON.parse(localStorage.getItem(KEY))||{}}catch(e){st={}}
+  var boxes=document.querySelectorAll('input[data-ck]');
+  boxes.forEach(function(b){
+    b.checked=!!st[b.dataset.ck];
+    b.addEventListener('change',function(){st[b.dataset.ck]=b.checked;try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){}});
+  });
+  document.getElementById('ckReset').addEventListener('click',function(){
+    if(!confirm('체크를 모두 지울까요?'))return;
+    st={};boxes.forEach(function(b){b.checked=false});try{localStorage.removeItem(KEY)}catch(e){}
+  });
+})();
+</script>
+</section>
+
+
+<footer>설계 근거: 국데처 MTV 작업계획서 v2.8, 국데처MTV 사업 문서, 2026-10-12 현장 실사, 2026-10-13 팀장 검토 의견(구축설계서 분리, 장비 전환 흐름 표시, Master KVM VM 3식 표현, HV 1대 MTV 수용 검토, NTP 연동), 2026-10-15 DNS VM 처리 변경(원본 HV로 이동 · MTV 후 삭제). 참고: <a href="https://docs.redhat.com/en/documentation/openshift_container_platform/">Red Hat OpenShift 문서</a>, <a href="https://docs.redhat.com/en/documentation/migration_toolkit_for_virtualization/">Red Hat MTV 문서</a>.</footer>
+</main><script>
+(function(){
+  var KEY='sgis-ocp-v16s-fields', v={};
+  try{v=JSON.parse(localStorage.getItem(KEY))||{}}catch(e){v={}}
+  var cells=document.querySelectorAll('td[data-f]');
+  cells.forEach(function(c){
+    if(v[c.dataset.f])c.textContent=v[c.dataset.f];
+    c.addEventListener('input',function(){v[c.dataset.f]=c.textContent.trim();try{localStorage.setItem(KEY,JSON.stringify(v))}catch(e){}});
+    c.addEventListener('keydown',function(e){if(e.key==='Enter'){e.preventDefault();c.blur();}});
+    c.addEventListener('paste',function(e){e.preventDefault();var t=(e.clipboardData||window.clipboardData).getData('text').replace(/\s+/g,' ');document.execCommand('insertText',false,t);});
+  });
+  document.getElementById('fieldReset').addEventListener('click',function(){
+    if(!confirm('입력한 값을 모두 지울까요?'))return;
+    v={};cells.forEach(function(c){c.textContent=''});try{localStorage.removeItem(KEY)}catch(e){}
+  });
+  document.querySelectorAll('[data-print]').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var m=btn.dataset.print;document.body.classList.remove('pm-forms','pm-checklist');
+      if(m!=='all')document.body.classList.add('pm-'+m);
+      window.print();
+    });
+  });
+  window.addEventListener('afterprint',function(){document.body.classList.remove('pm-forms','pm-checklist')});
+})();
+</script>
+</body></html>
