@@ -25,6 +25,7 @@ target: SGIS_MTV_WorkPlan_v3.0pt.pptx
   - LUN 매핑 해제는 다루지 않고, OpenShift 노드(Worker1·2)에 이관 VM 디스크용 FC LUN 매핑을 사전 준비로 둠.
   - OpenShift 노드 → vCenter·ESXi(443·902)는 같은 관리망(L3) 통신이라 방화벽 신청 대상 아님.
   - bootstrap IP는 master 구성 완료 후 반납. Master VM 이름은 master-1·2·3.
+  - Master KVM 호스트(외부·내부 공통, 2026-10-16): 관리망 4회선. 2회선은 호스트 원격접속용(관리망 IP 1개 신규), 2회선은 br0 브리지 포트(IP 설정 안 함). 신규 IP 망별 6개 → 7개(관리망 6 · nasbak 1).
   - Worker1·2 모두 "재구성"으로 표현 통일(Worker2: MTV 후 재구성). 이관 순서는 "외부망 먼저 작업"으로 명시.
 
 ## 구성
@@ -36,10 +37,10 @@ target: SGIS_MTV_WorkPlan_v3.0pt.pptx
 5. 03 장비 재구성 — 외부망(AS-IS · VMware / TO-BE · OpenShift, 신규 IP 개수 표시, 신규 장비는 현재 칸·화살표 없이 "신규 · 재활용 장비" 표시, DNS VM은 "DNS VM(HV#01로 이동)" 한 번만 표기)
 6. 03 장비 재구성 — 내부망
 7. 04 진행 순서 — 전환 7단계, 단계별 사전 준비
-8. 05 네트워크 — 노드별 네트워크 연결
+8. 05 네트워크 — 노드별 네트워크 연결(Master KVM: bond0 호스트 IP · bond1 → br0)
 9. 06 VM 이관 — Cold Migration(콜드 이관): 이관 대상 OS·대수, VM 종료 후 이관, 서비스 중단·IP 직접 설정
-10. 사전 준비 ① — 장비 설치·케이블 포설(TNS-2100 3대, NAS/BK 2포트, IPMI 원격 콘솔)
-11. 사전 준비 ② — 신규 IP 할당(망별 6개 = 관리망 5 · nasbak 1, bootstrap은 master 구성 완료 후 반납, Master KVM 호스트는 관리망 IP 없음)
+10. 사전 준비 ① — 장비 설치·케이블 포설(TNS-2100 3대, Master KVM 관리망 4회선, NAS/BK 2포트, IPMI 원격 콘솔)
+11. 사전 준비 ② — 신규 IP 할당(외부망 · 내부망 표로 나눠 장비별 IP 표시. 망별 7개 = 관리망 6 · nasbak 1, Master KVM 호스트 원격접속 IP 1, bootstrap은 master 구성 완료 후 반납)
 12. 사전 준비 ③ — VMware 작업(HV 정리 vMotion, 재구성 HV 호스트 제거, MTV 계정, MTV 완료 후 최종 정리)
 13. 사전 준비 ④ — 스토리지 작업(Worker1 LUN 매핑 · 원본 LUN 유지 · Worker2 LUN 매핑)
 14. 사전 준비 ⑤ — 방화벽·시간 동기화(작업 → 출발지 → 포트 → 목적지 순: 시간 동기화 NTP 123/UDP, etcd 백업 NFS)
