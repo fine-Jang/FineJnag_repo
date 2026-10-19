@@ -1,0 +1,734 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SGIS OpenShift 작업계획서</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<style>
+/* SGIS OpenShift 구축설계서 — 단일 스타일시트 (작업계획서 v2.8 스타일 기반)
+   색 역할: 남색 = 기본·구조 / 파랑 = 재활용 TNS-2100 / 빨강 = IP 할당 필요(전용) / 주황 = Worker2 MTV 완료 후 전환 */
+:root{
+  --font:"Pretendard","Noto Sans KR","Malgun Gothic","Apple SD Gothic Neo",sans-serif;
+  --ink:#1f2a3a;--ink-2:#334155;--muted:#475569;--line:#d5dce6;--line-2:#b9c4d3;
+  --paper:#eef1f5;--surface:#fff;--soft:#f5f7fa;
+  --navy:#1e3a5f;--navy-2:#2f4f7a;--navy-soft:#e6ecf4;
+  --new:#1d5bb5;--new-soft:#e3eeff;
+  --ip:#c62828;
+  --late:#b45309;--late-ink:#7c2d12;--late-soft:#fff3df;
+  --svc:#2f6fb5;--mgmt:#6d5aa6;--bk:#b0752f;
+  --note:#9a6a2a;--note-soft:#fbf4e6;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.7 var(--font);word-break:keep-all;-webkit-font-smoothing:antialiased}
+main{max-width:1380px;margin:auto;padding:32px 36px 72px}
+a{color:var(--new)}
+p{margin:10px 0}
+li{margin:6px 0}
+b,strong{font-weight:700}
+code{font-family:var(--font);background:var(--navy-soft);color:var(--navy);padding:1px 6px;border-radius:3px;font-size:.95em}
+.muted{color:var(--muted);font-size:14.5px}
+small{color:var(--muted);font-size:13px}
+
+/* 상단 */
+.toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}
+.tag{font-size:12.5px;font-weight:700;letter-spacing:1px;color:var(--navy);border:1.5px solid var(--line-2);padding:5px 12px}
+button{font:inherit;font-size:14px;border:1.5px solid var(--line-2);background:var(--surface);color:var(--navy);padding:7px 16px;cursor:pointer}
+button:hover{background:var(--navy-soft)}
+header{position:relative;background:var(--surface);border-top:7px solid var(--navy);border-bottom:1px solid var(--line-2);padding:36px 40px}
+
+.eyebrow{color:var(--navy-2);font-size:12px;font-weight:600;letter-spacing:2.5px;max-width:70%}
+h1{font-size:33px;font-weight:800;letter-spacing:-.5px;line-height:1.45;margin:14px 0;color:var(--navy)}
+header p{color:var(--ink-2);font-size:15.5px;margin:6px 0}
+nav{display:flex;flex-wrap:wrap;gap:8px 26px;padding:16px 2px;border-bottom:1px solid var(--line-2)}
+nav a{color:var(--navy-2);font-size:14.5px;font-weight:600;text-decoration:none}
+nav a:hover{color:var(--new);text-decoration:underline}
+
+/* 본문 블록 */
+section{background:var(--surface);border-top:3px solid var(--navy-2);padding:32px 36px;margin-top:28px;scroll-margin-top:16px}
+h2{font-size:24px;font-weight:800;color:var(--navy);letter-spacing:-.3px;margin:0 0 20px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+h3{font-size:18.5px;font-weight:700;color:var(--ink);margin:32px 0 12px;padding-left:10px;border-left:4px solid var(--navy-2);line-height:1.4}
+.note{border-left:4px solid var(--note);background:var(--note-soft);color:var(--ink);font-size:15.5px;padding:14px 18px;margin:18px 0}
+
+/* 요약 카드 */
+.cards{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);margin:22px 0}
+.card{padding:18px 22px;background:var(--soft);border-right:1px solid var(--line);font-size:14.5px;color:var(--ink-2)}
+.card:last-child{border-right:0}
+.card b{display:block;font-size:30px;font-weight:800;color:var(--navy);margin:4px 0}
+.card:nth-child(1){background:var(--new-soft);box-shadow:inset 0 4px 0 var(--new)}
+.card:nth-child(1) b{color:var(--new)}
+
+/* 표 */
+.tablewrap,.figure{overflow-x:auto}
+.tablewrap{border-bottom:1px solid var(--line)}
+table{width:100%;border-collapse:collapse;font-size:14.5px;line-height:1.7}
+th,td{padding:12px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}
+th{background:var(--navy-soft);color:var(--navy);font-weight:700;white-space:nowrap;border-top:2px solid var(--navy-2);border-bottom:1px solid var(--line-2)}
+tbody tr:nth-child(even){background:var(--soft)}
+tr:last-child td{border-bottom:0}
+td:first-child{color:var(--ink);font-weight:600}
+td small{display:inline-block;margin-top:2px;font-weight:600;color:var(--navy-2)}
+.risk td:first-child{white-space:nowrap}
+tr.row-new td{background:var(--new-soft)}
+tr.row-new td:first-child{box-shadow:inset 5px 0 0 var(--new)}
+
+/* 배지 */
+.badge-new,.badge-old,.badge-late,.badge-ip{display:inline-block;font-size:13px;font-weight:700;line-height:1.5;padding:1px 9px;border-radius:3px;white-space:nowrap;margin-right:5px}
+.badge-new{background:var(--new);border:1.5px solid var(--new);color:#fff}
+.badge-old{background:#fff;border:1.5px solid #8a99ad;color:var(--ink-2)}
+.badge-late{background:var(--late-soft);border:1.5px solid var(--late);color:var(--late-ink)}
+.badge-ip{background:var(--ip);border:1.5px solid var(--ip);color:#fff}
+
+/* 범례 */
+.legend{display:flex;flex-wrap:wrap;gap:10px 24px;align-items:center;padding:12px 16px;background:var(--soft);border:1px solid var(--line);color:var(--ink-2);font-size:14px}
+.legend i{display:inline-block;width:24px;height:4px;vertical-align:middle;margin-right:8px}
+.legend .old-key{width:24px;height:15px;background:#fff;border:1.5px solid #8a99ad}
+.legend .new-key{width:24px;height:15px;background:var(--new-soft);border:2.5px dashed var(--new)}
+.legend i.ip-key{width:auto;height:auto;font-style:normal;line-height:20px;padding:0 8px;background:var(--ip);color:#fff;font-weight:700;font-size:12.5px;border-radius:3px}
+
+/* 구성도 SVG */
+.figure{border:1px solid var(--line);background:#f8fafc;padding:10px}
+.figure svg{width:100%;min-width:1000px;height:auto;display:block;background:#f8fafc}
+svg text{font-family:var(--font);fill:var(--ink);font-size:15px}
+svg .small{font-size:13px;fill:var(--ink-2)}
+svg .bold{font-size:17.5px;font-weight:800;fill:var(--ink)}
+svg .stitle{font-size:18px;font-weight:800}
+svg .phase-title{fill:#fff;font-size:18px;font-weight:800}
+.panel{fill:#fff;stroke:#c8d2df}
+.panel-asis{stroke:#64748b;stroke-width:2.5}.panel-tobe{stroke:var(--navy-2);stroke-width:2.5}
+.heading-asis{fill:#64748b}.heading-tobe{fill:var(--navy-2)}
+.server{fill:#fff;stroke:#8a99ad;stroke-width:1.5}
+.pool{fill:#eef2f7;stroke:#9fb0c6}
+.vm{fill:#e7edf5;stroke:#8aa0bd}
+.wire{fill:none;stroke-width:1.8}.bus{fill:none;stroke-width:3}
+.svc{stroke:var(--svc)}.mgmt{stroke:var(--mgmt)}.bk{stroke:var(--bk)}
+.new-server{fill:var(--new-soft);stroke:var(--new);stroke-width:3;stroke-dasharray:8 4}
+.new-tag{fill:var(--new)}
+svg .tag-label{fill:#fff;font-size:13px;font-weight:700}
+svg .new-text{fill:var(--new);font-weight:700}
+.ip-badge{fill:var(--ip)}
+svg .ip-label{fill:#fff;font-size:13px;font-weight:700}
+.late-server{fill:var(--late-soft);stroke:var(--late);stroke-width:3}
+.late-badge{fill:var(--late)}
+svg .late-label{fill:#fff;font-size:13px;font-weight:700}
+.worker-late .vm{fill:#ffe7c2;stroke:#c98a3a}
+.worker-late .bold{fill:var(--late-ink)}
+.worker-late .small{fill:#6b3a12}
+/* 상세 구성도 */
+.ipmi{stroke:#64748b;stroke-dasharray:6 4}
+.fc{stroke:#0f766e}
+.bus.ipmi{stroke-width:2.2}
+.dot{fill:#334155}
+svg .lbl{paint-order:stroke;stroke:#fff;stroke-width:5px;stroke-linejoin:round}
+.svcbox{fill:#f5f7fa;stroke:#c8d2df}
+.box{fill:#fff;stroke:#8a99ad;stroke-width:1.5}
+.box-svc{fill:#eaf2fb;stroke:var(--svc);stroke-width:1.8}
+.box-bk{fill:#fbf2e7;stroke:var(--bk);stroke-width:1.8}
+.box-mgmt{fill:#f1eef9;stroke:var(--mgmt);stroke-width:1.8}
+.box-off{fill:#f1f5f9;stroke:#94a3b8;stroke-width:1.5;stroke-dasharray:6 4}
+.box-tbd{fill:#fff8e6;stroke:#c99a2e;stroke-width:1.8;stroke-dasharray:7 4}
+.box-st{fill:#e9f5f2;stroke:#0f766e;stroke-width:2}
+.arrow{fill:none;stroke:#475569;stroke-width:1.8}
+.arrow-tbd{fill:none;stroke:#c99a2e;stroke-width:1.8;stroke-dasharray:6 4}
+.legend i.ipmi-key{height:0;background:none;border-top:3px dashed #64748b}
+.legend .tbd-key{width:24px;height:15px;background:#fff8e6;border:1.5px dashed #c99a2e}
+
+/* 장비 재구성 매핑 행 (v1.1 — 곡선 화살표 구성도 대체) */
+.remap{display:flex;flex-direction:column;gap:14px;margin:20px 0}
+.remap-row{display:grid;grid-template-columns:40px minmax(0,1fr) 112px minmax(0,1fr);gap:0 16px;align-items:center}
+.remap-step{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:#fff;background:var(--navy-2);justify-self:center}
+.remap-step.s-new{background:#fff;border:2px solid var(--new);color:var(--new)}
+.remap-step.s-chg{background:#be185d}
+.remap-step.s-late{background:var(--late)}
+.remap-box{border:1.5px solid var(--line-2);border-radius:8px;padding:14px 16px;background:#fff;min-height:92px}
+.remap-box .ttl{font-size:16px;font-weight:800;color:var(--ink);margin-bottom:2px}
+.remap-box .sub{font-size:13.5px;color:var(--ink-2)}
+.remap-box .meta{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.65}
+
+.remap-box.is-empty{display:flex;align-items:center;justify-content:center;border-style:dashed;background:var(--soft);color:var(--muted);font-size:13.5px}
+.remap-box.is-new{background:var(--new-soft);border:2px dashed var(--new)}
+.remap-box.is-worker{background:var(--soft)}
+.remap-box.is-late{background:var(--late-soft);border:2px solid var(--late)}
+.remap-box .chip{display:inline-block;margin-top:8px;font-size:12px;font-weight:700;padding:2px 8px;border-radius:3px;background:#e8f6ee;color:#166534;border:1px solid #86cfa8}
+.remap-arrow{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.remap-arrow .glyph{font-size:24px;line-height:1;font-weight:700}
+.remap-arrow .lbl{font-size:12px;font-weight:700;white-space:nowrap}
+.remap-arrow.a-chg .glyph,.remap-arrow.a-chg .lbl{color:#be185d}
+.remap-arrow.a-late .glyph,.remap-arrow.a-late .lbl{color:var(--late)}
+.remap-arrow.a-new .glyph,.remap-arrow.a-new .lbl{color:var(--new)}
+.remap-head{margin-bottom:-4px}
+.remap-colhead{font-size:13.5px;font-weight:800;letter-spacing:1px;text-align:center;padding:7px 12px;border-radius:6px}
+.ch-asis{background:#e2e8f0;color:#475569}.ch-tobe{background:var(--navy-2);color:#fff}
+.remap-box .spec{font-size:13px;color:var(--muted);margin-top:2px}
+.remap-net-title{font-size:12.5px;font-weight:700;color:var(--muted);margin:26px 0 8px;letter-spacing:.5px}
+
+/* 설계 항목 상태 · 그림 설명 · 확인 필요 목록 (v1.3) */
+.st{display:inline-block;font-size:12px;font-weight:700;padding:1px 8px;border-radius:3px;white-space:nowrap}
+.st-ok{background:#e8f6ee;color:#166534;border:1px solid #86cfa8}.st-dec{background:#fff3df;color:#7c2d12;border:1px solid #e0a35a}.st-chk{background:#fff8e6;color:#7a5a14;border:1px dashed #c99a2e}
+.fignote{margin:10px 0 0;padding-left:20px;font-size:14.5px;color:var(--ink-2)}
+.checks{list-style:none;padding:0;margin:8px 0}.checks li{padding:5px 0;border-bottom:1px solid var(--line);font-size:14.5px}.checks .st{margin-right:10px}
+
+/* IP 할당 상세 */
+.ip-need{margin-top:8px;border-left:3px solid var(--ip);background:#fff5f5;padding:6px 10px;border-radius:0 4px 4px 0}
+
+/* Master KVM 호스트 안의 VM 표시 */
+.kvm{margin-top:10px;border:1.2px dashed #7d93b2;border-radius:6px;background:#f5f8fc;padding:8px 10px}
+.kvm-head{font-size:12.5px;font-weight:700;color:var(--navy-2);margin-bottom:6px}
+.kvm-vms{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.kvm-vm{display:flex;flex-direction:column;align-items:center;gap:3px;background:#fff;border:2px solid var(--navy-2);border-radius:6px;padding:8px 6px;text-align:center}
+.kvm-vm .vm-mark{background:var(--navy-2);color:#fff;font-size:11px;font-weight:800;line-height:1;padding:3px 7px;border-radius:3px}
+.kvm-vm .vm-name{font-size:14.5px;font-weight:800;color:var(--ink)}
+.kvm-vm .vm-role{font-size:12px;color:var(--muted)}
+.kvm{border:1.5px dashed var(--navy-2)}
+.kvm-head{font-size:13px}.kvm-head b{color:var(--ink)}
+.kvm-foot{font-size:12.5px;color:var(--muted);margin-top:6px}
+
+/* 단계 카드 */
+.steps{display:grid;grid-template-columns:repeat(5,1fr);border:1px solid var(--line-2)}
+.step{padding:16px 18px;background:var(--soft);border-right:1px solid var(--line-2);border-top:4px solid var(--navy-2)}
+.step:last-child{border-right:0}
+.step strong{display:block;margin-bottom:8px;color:var(--navy);font-size:16px}
+.step p{font-size:14.5px;color:var(--ink-2)}
+
+footer{margin-top:28px;padding-top:22px;border-top:1px solid var(--line-2);color:var(--muted);font-size:13.5px;line-height:1.8}
+
+/* 구축설계서 추가 — 장비 재구성 구성도 · 미확정 값 */
+h4{font-size:16px;font-weight:700;color:var(--navy-2);margin:22px 0 10px}
+.tbd{display:inline-block;font-size:12.5px;font-weight:700;line-height:1.5;padding:0 7px;border-radius:3px;background:#fff8e6;border:1.5px dashed #c99a2e;color:#7a5a14;white-space:nowrap}
+.arrow-case{fill:none;stroke:#fff;stroke-width:8}
+.arrow-chg{fill:none;stroke:#be185d;stroke-width:3}
+.arrow-late{fill:none;stroke:var(--late);stroke-width:3;stroke-dasharray:10 5}
+.arrow-mtv{fill:none;stroke:#15803d;stroke-width:4}
+.lbl-bg{fill:#fff;stroke-width:1.5}.lbl-chg{stroke:#be185d}.lbl-late{stroke:var(--late)}.lbl-mtv{stroke:#15803d}
+svg .arc-label{fill:#9d174d;font-weight:800;font-size:14px}
+svg .late-arc-label{fill:var(--late-ink)}
+svg .mtv-label{fill:#166534;font-weight:800;font-size:14px}
+.legend .late-key{width:24px;height:15px;background:var(--late-soft);border:2.5px solid var(--late)}
+.legend i.chg-key{height:0;background:none;border-top:3px solid #be185d}
+.legend i.late-arrow-key{height:0;background:none;border-top:3px dashed var(--late)}
+.legend i.mtv-key{height:0;background:none;border-top:4px solid #15803d}
+.num-chg{fill:#be185d}.num-late{fill:var(--late)}.num-mtv{fill:#15803d}
+svg .num-label{fill:#fff;font-size:13px;font-weight:800}
+.panel-asis-lite{fill:#fbfcfd;stroke:#cbd5e1;stroke-width:1.5}
+.heading-asis-lite{fill:#e2e8f0}
+svg .phase-title-lite{fill:#475569;font-size:16px;font-weight:800}
+.asis-server{fill:#f8fafc;stroke:#a7b3c4}
+svg .bold-s{font-size:15px;font-weight:800;fill:var(--ink-2)}
+svg .bold-l{font-size:19px;font-weight:800;fill:var(--ink)}
+.worker-late .bold-l{fill:var(--late-ink)}
+svg .xs{font-size:12px;fill:var(--muted)}
+svg .tns-title{font-size:13.5px}
+.num-new{fill:#fff}
+svg .num-new-label{fill:var(--new);font-size:12px;font-weight:800}
+.kvm-frame{fill:#f5f8fc;stroke:#7d93b2;stroke-width:1.2;stroke-dasharray:5 3}
+svg .kvm-label{fill:var(--navy-2);font-weight:700}
+.kvm-vm{fill:#fff;stroke:#6b86ab;stroke-width:1.4}
+.vm-mark{fill:var(--navy-2)}
+svg .vm-mark-label{fill:#fff;font-size:10px;font-weight:800;text-anchor:middle}
+svg .vm-name{fill:var(--ink);font-weight:600}
+.step-kind strong{display:flex;align-items:center;gap:8px}
+.stepno{display:inline-flex;align-items:center;justify-content:center;flex:none;width:24px;height:24px;border-radius:50%;color:#fff;font-size:13px;font-weight:800;line-height:1}
+.n-add{background:#fff;border:2px solid var(--new);color:var(--new)}.n-chg{background:#be185d}.n-mtv{background:#15803d}.n-late{background:var(--late)}
+.step.k-add{border-top-color:var(--new)}.step.k-chg{border-top-color:#be185d}.step.k-mtv{border-top-color:#15803d}.step.k-late{border-top-color:var(--late)}
+.step small{display:block;margin-top:6px;font-size:13px;color:var(--muted)}
+@media(max-width:800px){
+  main{padding:16px}header{padding:24px}header:after{font-size:20px;right:16px;top:18px}
+  .eyebrow{max-width:66%;font-size:10px}h1{font-size:25px}section{padding:20px 16px}
+  .cards,.steps{grid-template-columns:1fr 1fr}.card,.step{border-bottom:1px solid var(--line)}
+  table{min-width:720px}
+  .remap-row{grid-template-columns:1fr}.remap-step{justify-self:start}.remap-head{display:none}
+  .remap-arrow{flex-direction:row;padding:4px 0}.remap-arrow .glyph{transform:rotate(90deg)}
+}
+@media print{
+  @page{size:A3 landscape;margin:12mm}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{background:#fff;font-size:12px}main{padding:0;max-width:none}
+  .toolbar,nav{display:none}
+  header{padding:20px 28px}header:after{font-size:28px}h1{font-size:26px}
+  section{padding:16px 20px;margin-top:16px;break-inside:auto}
+  h2,h3{break-after:avoid}.figure,table,.steps{break-inside:avoid}
+  .figure{padding:4px}.figure svg{min-width:0}
+  .remap-row{break-inside:avoid}
+  .card{padding:10px 15px}.card b{font-size:22px}
+  table{font-size:11.5px}th,td{padding:7px 9px}thead{display:table-header-group}tr{break-inside:avoid}
+  .note,.muted{font-size:11.5px}footer{font-size:10.5px}
+}
+
+/* v1.4 현장 설치용 */
+.ipform td{border:1px solid var(--line-2)}.ipform td.blank{min-width:150px;height:42px;background:#fff}
+.ipform tr.net-head td{background:var(--navy-soft);color:var(--navy);font-weight:800}
+.ipform .na{color:var(--muted)}
+.ipform-net td:not(:first-child){min-width:170px;height:42px}
+.phase{margin:22px 0;border:1px solid var(--line-2);border-radius:6px;overflow:hidden;break-inside:avoid}
+.phase-head{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--navy);color:#fff}
+.phase-head b{font-size:19px}.phase-head small{display:inline;margin:0;font-size:14px;font-weight:500;color:#cfdbee}
+.phase-no{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:#fff;color:var(--navy);font-weight:800;font-size:16px;flex:none}
+.cktable{font-size:16px}.cktable th{border-top:0}.cktable td{padding:13px 14px;vertical-align:middle}
+.cktable td:first-child{font-weight:400}
+.cktable{table-layout:fixed}.c-ck{width:76px;text-align:center!important}.cktable th:last-child{width:32%}
+.ck{display:inline-block;cursor:pointer}.ck input{position:absolute;opacity:0;width:0;height:0}
+.ck span{display:inline-block;width:28px;height:28px;border:2.5px solid var(--navy-2);border-radius:5px;background:#fff;vertical-align:middle;position:relative}
+.ck input:checked+span{background:#15803d;border-color:#15803d}
+.ck input:checked+span:after{content:"";position:absolute;left:8px;top:2px;width:8px;height:15px;border:solid #fff;border-width:0 3.5px 3.5px 0;transform:rotate(45deg)}
+.ck input:focus-visible+span{outline:3px solid #93c5fd;outline-offset:2px}
+.ck-reset{margin-left:8px;font:inherit;font-size:13.5px;padding:3px 12px;border:1px solid var(--line-2);border-radius:4px;background:var(--soft);cursor:pointer}
+@media print{.ck-reset{display:none}.ck input:checked+span{background:#fff;border-color:var(--navy-2)}.ck input:checked+span:after{display:none}.cktable{font-size:13px}.phase{margin:12px 0}}
+
+/* v1.5 개요 그림 · NIC 표 */
+.cap{margin:8px 0 0;font-size:13.5px;color:var(--muted)}
+.env-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.env-net{border:1px solid var(--line-2);border-radius:6px;background:var(--soft);overflow:hidden}
+.env-net-head{padding:9px 14px;background:var(--navy);color:#fff;font-weight:700;font-size:14.5px}
+.env-hosts{display:flex;flex-wrap:wrap;gap:10px;padding:14px}
+.env-host{flex:1 1 150px;background:#fff;border:1.5px solid var(--line-2);border-radius:6px;padding:10px 12px}
+.env-name{font-weight:800;color:var(--navy);font-size:16px}
+.env-spec{font-size:12.5px;color:var(--muted);margin:2px 0 8px}
+.env-chips{display:flex;flex-wrap:wrap;gap:5px}
+.ec{font-size:12.5px;font-weight:700;padding:2px 8px;border-radius:3px;border:1px solid var(--line-2);background:var(--soft);color:var(--ink-2)}
+.ec-vm{background:#e8f6ee;color:#166534;border-color:#86cfa8}
+.ec-dns{background:#fff3df;color:#7c2d12;border-color:#e0a35a}
+.ec-sys{background:#f1f5f9;color:#475569}
+.ec-svc{background:var(--navy-soft);color:var(--navy);border-color:#b9c8dd}
+.ec-mvm{background:#eef2ff;color:#3730a3;border-color:#a5b4fc}
+.ec-tmp{background:#fff;color:var(--muted);border-style:dashed}
+.ec-late{background:var(--late-soft);color:var(--late-ink);border-color:var(--late)}
+.env-host.n-bas,.env-host.n-mst{border-color:var(--new)}
+.env-host.n-late{border-style:dashed;border-color:var(--late)}
+.env-foot{padding:0 14px 12px;font-size:13px;color:var(--ink-2)}
+.ipform tr.net-row td{background:var(--soft);font-weight:700}
+.ipform tr.net-row td.blank{background:#fff}
+.env-ocp .env-hosts{display:grid;grid-template-columns:repeat(4,1fr)}
+.sumtbl td[rowspan]{width:7em;vertical-align:middle;background:var(--soft);font-weight:700;white-space:nowrap}.sumtbl tr.grp td{border-top:2px solid var(--line-2)}.sumtbl tr.tot td{font-weight:800;color:var(--navy)}.sumtbl small{color:var(--muted);font-weight:400}
+.nic2 th,.ipnet th{white-space:nowrap}
+.nic2 td{vertical-align:middle}
+.nic2 tr.grp td{border-top:2px solid var(--line-2)}
+.nic2 td.srv{background:var(--soft);font-weight:800;color:var(--ink);vertical-align:middle;white-space:nowrap;width:10em}
+.nic2 td.srv small{display:block;font-weight:500;color:var(--muted);font-size:12.5px;margin-top:2px}
+.nic2 td.nb{white-space:nowrap;width:9em}
+.nic2 td.nb b{font-family:ui-monospace,Consolas,monospace;font-size:13.5px;margin-left:6px;color:var(--ink)}
+.nic2 td.none{background:var(--soft);color:var(--muted);font-size:12.5px;text-align:center}
+.nic2 td.nt{font-size:12.5px;color:var(--muted)}
+.nic2 td.blank{min-width:120px;height:38px}
+.net{display:inline-block;min-width:4.6em;padding:2px 8px;border-radius:10px;font-size:11.5px;font-weight:800;text-align:center;color:#fff}
+.net.n-mgmt{background:var(--mgmt)}.net.n-svc{background:var(--svc)}.net.n-bk{background:var(--bk)}.net.n-ipmi{background:#7b8794}
+.ipnet th{background:var(--navy-soft);color:var(--navy);font-weight:800;text-align:left;width:11em;border:1px solid var(--line-2);padding:8px 12px}
+.ipnet td.blank{height:38px}
+.vmi{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:12px 0 26px}
+.vmi-card{border:1px solid var(--line);border-top:4px solid var(--navy-2);background:var(--surface);padding:16px 18px 14px}
+.vmi-head{font-size:15px;font-weight:800;color:var(--navy)}
+.vmi-head small{display:block;font-size:12.5px;font-weight:500;color:var(--muted);margin-top:2px}
+.vmi-big{font-size:34px;font-weight:800;color:var(--navy);margin:8px 0 12px;line-height:1}
+.vmi-big span{font-size:16px;margin-left:3px;color:var(--ink-2)}
+.vmi-row{display:grid;grid-template-columns:7.2em 1fr;align-items:center;column-gap:10px;margin:10px 0}
+.vmi-net{font-size:13.5px;color:var(--ink-2);white-space:nowrap}
+.vmi-net b{margin-left:6px;color:var(--ink)}
+.vmi-track{display:flex;height:24px;background:var(--navy-soft);border-radius:4px;overflow:hidden}
+.vmi-seg{display:flex;align-items:center;justify-content:center;color:#fff;font-size:12.5px;font-weight:700;white-space:nowrap;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.vmi-sub{grid-column:2;font-size:11.5px;color:var(--muted);margin-top:2px;text-align:right}
+.s-rhel{background:var(--navy-2)}.s-win{background:var(--svc)}.s-mem{background:var(--new)}.s-ds{background:var(--bk)}.s-track{background:var(--navy-soft);border:1px solid var(--line-2)}
+.vmi-leg{display:flex;flex-wrap:wrap;gap:6px 14px;border-top:1px dashed var(--line);padding-top:10px;margin-top:12px;font-size:12px;color:var(--muted)}
+.vmi-leg i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+@media (max-width:900px){.vmi{grid-template-columns:1fr}}
+.sub-cap{margin:16px 0 6px;font-size:13.5px;font-weight:800;color:var(--navy-2)}
+.nicform tr.grp td{border-top:2px solid var(--line-2)}.nicform td[rowspan]{vertical-align:middle;background:var(--soft);font-weight:700}
+.nicform td.k{background:var(--soft);color:var(--muted);font-size:12.5px;white-space:nowrap;text-align:center}.nicform td.fx{color:var(--muted);font-size:12.5px;text-align:center}.nicform td.blank{min-width:110px}
+.nicform td.na{color:var(--muted);text-align:center}
+@media(max-width:800px){.env-grid{grid-template-columns:1fr}}
+@media print{.env-net{break-inside:avoid}}
+
+/* v1.6s 기입 · 인쇄 */
+.tools{display:flex;flex-wrap:wrap;gap:8px}
+.tools button{font:inherit;font-size:13.5px;font-weight:700;padding:6px 14px;border:1.5px solid var(--navy-2);border-radius:4px;background:#fff;color:var(--navy);cursor:pointer}
+.tools button:hover{background:var(--navy-soft)}
+.tools .tool-warn{border-color:var(--line-2);color:var(--muted);font-weight:500}
+td[contenteditable]{background:#fffdf0!important;cursor:text;font-weight:400!important;color:var(--ink)!important;font-family:ui-monospace,Consolas,monospace;font-size:14.5px}
+td[contenteditable]:hover{box-shadow:inset 0 0 0 1px #e0c35a}
+td[contenteditable]:focus{outline:2px solid var(--navy-2);outline-offset:-2px;background:#fff!important}
+@media print{
+  td[contenteditable]{background:#fff!important;box-shadow:none}
+  body.pm-forms header,body.pm-forms footer,body.pm-forms section:not(#net){display:none!important}
+  body.pm-forms #net>*:not(.formblock):not(h2){display:none!important}
+  body.pm-checklist header,body.pm-checklist footer,body.pm-checklist section:not(#checklist){display:none!important}
+  .formblock h3,.formblock h4{break-after:avoid;page-break-after:avoid}.formblock .tablewrap{break-inside:avoid}
+  .formblock h4+.tablewrap{break-before:avoid}
+}
+.agree td[rowspan]{width:9em;vertical-align:middle;background:var(--soft);font-weight:700;white-space:nowrap}.agree tr.grp td{border-top:2px solid var(--line-2)}.agree td.no{text-align:center;color:var(--muted);width:3em}
+.brand-logo{position:absolute;top:30px;right:40px;height:30px;width:auto}@media (max-width:720px){.brand-logo{position:static;display:block;height:22px;margin-bottom:12px}}@media print{.brand-logo{height:26px}}
+
+/* 작업계획서 추가 */
+.meta{display:flex;flex-wrap:wrap;gap:6px 10px;margin:0 0 8px}
+.meta span{font-size:13.5px;font-weight:700;color:var(--navy);background:var(--navy-soft);padding:3px 10px;border-radius:3px}
+pre.cmd{position:relative;background:#16202e;color:#e6edf5;font:13.5px/1.6 ui-monospace,Consolas,"D2Coding",monospace;padding:30px 18px 14px;border-radius:5px;overflow-x:auto;white-space:pre;margin:10px 0;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+pre.cmd .ex{position:absolute;top:7px;right:10px}
+.ex{display:inline-block;font:700 11.5px/1.5 var(--font);padding:0 7px;border-radius:3px;background:#fff8e6;border:1.5px dashed #c99a2e;color:#7a5a14;white-space:nowrap}
+.ok{font-size:14px;color:var(--ink-2);border-left:3px solid var(--line-2);padding-left:10px;margin:6px 0 16px}
+td.no{width:3em;text-align:center;font-weight:800;color:var(--navy)}
+.flow{display:grid;grid-template-columns:repeat(8,1fr);gap:6px;margin:10px 0 6px}
+.flow.small{grid-template-columns:repeat(5,1fr)}
+.fl{background:var(--soft);border:1px solid var(--line-2);border-top:4px solid var(--navy-2);padding:10px 12px;font-size:14px;font-weight:700;color:var(--ink)}
+.fl b{display:block;font-size:20px;color:var(--navy);line-height:1.2}
+.fl small{display:block;font-weight:500;font-size:12px}
+.fl.late{border-top-color:var(--late)}.fl.late b{color:var(--late)}
+footer{margin-top:24px;font-size:13px;color:var(--muted)}
+@media (max-width:900px){.flow{grid-template-columns:repeat(2,1fr)}.flow.small{grid-template-columns:repeat(2,1fr)}}
+@media print{.toolbar{display:none}pre.cmd{white-space:pre-wrap;break-inside:avoid}section{break-before:page}#s00{break-before:auto}}
+</style></head><body><main><div class="toolbar"><div class="tools"><button type="button" onclick="window.print()">인쇄</button></div><span class="tag">VERSION 0.1 / 내부 작업자용 · 명령은 예시(테스트하며 확정)</span></div>
+<header><img class="brand-logo" alt="AONSOFT" src="data:image/jpeg;base64,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"><div class="eyebrow">SGIS INFRASTRUCTURE / OPENSHIFT WORK PLAN</div><h1>국가데이터처 SGIS 오픈플랫폼<br>OpenShift 전환 작업계획서</h1><p>망별 OpenShift 클러스터 구축 · VM 이관(MTV) 단계별 작업 순서와 명령 예시</p><p>내부 구축팀 현장 작업 문서 · 작성일 2026.10.20 · 근거: 구축설계서 v1.9t · <span class="tbd">TBD</span> 미확정 값 · <span class="ex">예시</span> 테스트 전 명령</p></header>
+<nav aria-label="목차"><a href="#s00">00 작업 전 확인</a><a href="#s01">01 장비 설치·결선</a><a href="#s02">02 Bastion</a><a href="#s03">03 HV 정리</a><a href="#s04">04 Master</a><a href="#s05">05 Worker1</a><a href="#s06">06 Operator·MTV</a><a href="#s07">07 VM 이관</a><a href="#s08">08 Worker2</a><a href="#s09">09 원복</a><a href="#s10">부록</a></nav>
+
+<div class="note"><b>이 문서의 명령은 예시입니다.</b> 테스트 환경에서 실행해 보면서 값과 옵션을 확정합니다. 확정 전 명령은 <span class="ex">예시</span>, 정해지지 않은 값은 <span class="tbd">TBD</span>로 표시합니다. IP·호스트명은 <code>&lt;Bastion IP&gt;</code>처럼 자리표시자로 적고, 실제 값은 구축설계서 IP 기입표를 봅니다. 외부망·내부망 순서는 같으며, <b>외부망 먼저</b> 진행합니다.</div>
+
+<section id="s00"><h2>00. 작업 전 확인</h2>
+<h3>전체 순서</h3>
+<div class="flow">
+<div class="fl"><b>1</b>장비 설치·결선<small>10월 · 1차</small></div>
+<div class="fl"><b>2</b>Bastion 구축<small>11월 · 2차</small></div>
+<div class="fl"><b>3</b>HV 정리<small>11월 · 재구성 전</small></div>
+<div class="fl"><b>4</b>Master 구성<small>11월</small></div>
+<div class="fl"><b>5</b>Worker1 편입<small>11월</small></div>
+<div class="fl"><b>6</b>Operator·MTV<small>11월 · 시험 이관 전</small></div>
+<div class="fl"><b>7</b>VM 이관<small>12월 · 외부망 먼저</small></div>
+<div class="fl late"><b>8</b>Worker2 전환<small>12월 말 · MTV 완료 후</small></div>
+</div>
+<h3>망별 대상 장비</h3>
+<div class="tablewrap"><table><thead><tr><th>역할</th><th>외부망</th><th>내부망</th><th>비고</th></tr></thead><tbody>
+<tr><td>Bastion</td><td>재활용 TNS-2100 #A</td><td>재활용 TNS-2100</td><td>관리 bond0 · NAS/BK bond2</td></tr>
+<tr><td>Master KVM 호스트</td><td>재활용 TNS-2100 #B</td><td>기존 HV#03 재구성</td><td>관리 4회선: bond0 호스트 IP · bond1 → br0(IP 없음)</td></tr>
+<tr><td>Worker1</td><td>기존 HV#02 재구성</td><td>기존 HV#01 재구성</td><td>이관 기간 업무 VM 전체 수용</td></tr>
+<tr><td>Worker2</td><td>기존 HV#01 (MTV 후)</td><td>기존 HV#02 (MTV 후)</td><td>MTV 완료까지 VMware 원본 유지</td></tr>
+</tbody></table></div>
+<h3>시작 전에 받아 둘 것</h3>
+<div class="tablewrap"><table><thead><tr><th>항목</th><th>내용</th><th>담당</th></tr></thead><tbody>
+<tr><td>신규 IP</td><td>망별 7개 (관리망 6: Bastion · Master KVM 호스트 · master-1·2·3 · bootstrap / nasbak 1: Bastion)</td><td>네트워크</td></tr>
+<tr><td>망 정보</td><td>관리망 대역·GW, nasbak 대역·VLAN, 상위 NTP 서버 IP</td><td>네트워크</td></tr>
+<tr><td>방화벽</td><td>Bastion → NTP 123/UDP, Bastion → 통합 백업스토리지(NFS)</td><td>네트워크</td></tr>
+<tr><td>설치 미디어</td><td>RHEL 9.8 ISO, RHCOS live ISO(4.22), openshift-install · oc · oc-mirror, mirror-registry, 미러 이미지 묶음</td><td>구축팀</td></tr>
+<tr><td>IPMI</td><td>장비별 IPMI 주소·계정, 가상 미디어 사용 가능 여부</td><td>서버 운영자</td></tr>
+<tr><td>vCenter 계정</td><td>MTV용 역할·계정</td><td>VMware 엔지니어</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="s01"><h2>01. 장비 설치 · 결선</h2>
+<div class="meta"><span>시기 · 10월(1차)</span><span>담당 · 서버 운영자 · 네트워크 담당</span></div>
+<div class="tablewrap"><table><thead><tr><th>장비</th><th>관리망</th><th>서비스망</th><th>nasbak</th><th>IPMI</th><th>FC</th></tr></thead><tbody>
+<tr><td>Bastion (TNS-2100)</td><td>2포트 → bond0</td><td>–</td><td>2포트 신규 포설 → bond2</td><td>1</td><td>–</td></tr>
+<tr><td>Master KVM 호스트</td><td><b>4회선</b> → bond0(호스트 IP) · bond1(br0)</td><td>–</td><td>–</td><td>1</td><td>–</td></tr>
+<tr><td>Worker1 · Worker2 (기존 HV)</td><td>2포트 → bond0</td><td>2포트 → bond1</td><td>2포트 → bond2</td><td>1</td><td>유지</td></tr>
+</tbody></table></div>
+<p class="cap">bond: 2포트 · mode 1(active-backup) · 10G, IPMI 1G. 내부 HV#03(Master KVM)은 관리망 4회선으로 결선 변경 필요 여부 확인 <span class="tbd">TBD</span>. 결선 후 IPMI 원격 콘솔 접속까지 확인합니다.</p>
+</section>
+
+<section id="s02"><h2>02. Bastion 구축</h2>
+<div class="meta"><span>시기 · 11월(2차) · HV 작업과 무관하게 먼저</span><span>담당 · 구축팀</span><span>OS · RHEL 9.8</span></div>
+
+<h3>2-1. OS · 네트워크</h3>
+<pre class="cmd"><span class="ex">예시</span># 관리망 bond0 (active-backup)
+nmcli con add type bond con-name bond0 ifname bond0 bond.options "mode=active-backup,miimon=100"
+nmcli con add type ethernet con-name bond0-p1 ifname &lt;관리 포트1&gt; master bond0
+nmcli con add type ethernet con-name bond0-p2 ifname &lt;관리 포트2&gt; master bond0
+nmcli con mod bond0 ipv4.method manual ipv4.addresses &lt;Bastion IP&gt;/&lt;prefix&gt; ipv4.gateway &lt;관리망 GW&gt; ipv4.dns 127.0.0.1
+nmcli con up bond0
+
+# nasbak bond2 (etcd 백업용 · 기본 GW 없음)
+nmcli con add type bond con-name bond2 ifname bond2 bond.options "mode=active-backup,miimon=100"
+nmcli con add type ethernet con-name bond2-p1 ifname &lt;NAS/BK 포트1&gt; master bond2
+nmcli con add type ethernet con-name bond2-p2 ifname &lt;NAS/BK 포트2&gt; master bond2
+nmcli con mod bond2 ipv4.method manual ipv4.addresses &lt;Bastion nasbak IP&gt;/&lt;prefix&gt; ipv4.never-default yes
+nmcli con up bond2
+
+hostnamectl set-hostname &lt;bastion FQDN&gt;</pre>
+<p class="ok">확인: <code>ip -br a</code>, <code>cat /proc/net/bonding/bond0</code> 활성 포트 · 관리망 GW ping · 백업스토리지 ping. nasbak VLAN 태깅 방식(access/trunk) <span class="tbd">TBD</span></p>
+
+<h3>2-2. 시간 동기화 (chrony)</h3>
+<pre class="cmd"><span class="ex">예시</span># /etc/chrony.conf
+server &lt;상위 NTP IP&gt; iburst
+allow &lt;관리망 CIDR&gt;
+local stratum 10
+
+systemctl enable --now chronyd
+firewall-cmd --permanent --add-service=ntp &amp;&amp; firewall-cmd --reload</pre>
+<p class="ok">확인: <code>chronyc sources -v</code> 에서 상위 NTP <code>^*</code> 표시</p>
+
+<h3>2-3. DNS (bind)</h3>
+<pre class="cmd"><span class="ex">예시</span># 정방향 zone (&lt;클러스터명&gt;.&lt;base domain&gt;)
+api          IN A  &lt;Bastion IP&gt;
+api-int      IN A  &lt;Bastion IP&gt;
+*.apps       IN A  &lt;Bastion IP&gt;
+bootstrap    IN A  &lt;bootstrap IP&gt;
+master-1     IN A  &lt;master-1 IP&gt;
+master-2     IN A  &lt;master-2 IP&gt;
+master-3     IN A  &lt;master-3 IP&gt;
+worker-1     IN A  &lt;Worker1 IP&gt;
+worker-2     IN A  &lt;Worker2 IP&gt;
+; MTV 접속용
+vcenter      IN A  &lt;vCenter IP&gt;
+esxi-01      IN A  &lt;원본 ESXi IP&gt;
+; 역방향 zone에 노드 PTR 등록
+
+systemctl enable --now named
+firewall-cmd --permanent --add-service=dns &amp;&amp; firewall-cmd --reload</pre>
+<p class="ok">확인: <code>dig +short api.&lt;클러스터&gt;.&lt;domain&gt;</code>, <code>dig +short test.apps.&lt;클러스터&gt;.&lt;domain&gt;</code>, <code>dig -x &lt;master-1 IP&gt;</code></p>
+
+<h3>2-4. 부하분산 (HAProxy)</h3>
+<pre class="cmd"><span class="ex">예시</span># /etc/haproxy/haproxy.cfg (mode tcp)
+frontend api          bind *:6443   → backend: bootstrap, master-1~3 :6443
+frontend machine-cfg  bind *:22623  → backend: bootstrap, master-1~3 :22623
+frontend ingress-http bind *:80     → backend: worker-1(, worker-2) :80
+frontend ingress-https bind *:443   → backend: worker-1(, worker-2) :443
+
+setsebool -P haproxy_connect_any 1
+systemctl enable --now haproxy
+firewall-cmd --permanent --add-port={6443,22623,80,443}/tcp &amp;&amp; firewall-cmd --reload</pre>
+<p class="ok">bootstrap은 Master 구성 완료 후 6443·22623 backend에서 제거합니다(4-6).</p>
+
+<h3>2-5. Ignition 배포용 HTTP</h3>
+<pre class="cmd"><span class="ex">예시</span>dnf install -y httpd
+sed -i 's/^Listen 80$/Listen 8080/' /etc/httpd/conf/httpd.conf
+systemctl enable --now httpd
+firewall-cmd --permanent --add-port=8080/tcp &amp;&amp; firewall-cmd --reload</pre>
+<p class="ok">포트는 예시(8080) <span class="tbd">TBD</span> · 확인: <code>curl -I http://&lt;Bastion IP&gt;:8080/</code></p>
+
+<h3>2-6. 미러 레지스트리 · 이미지 반입</h3>
+<pre class="cmd"><span class="ex">예시</span># mirror registry (Quay) 설치
+./mirror-registry install --quayHostname &lt;bastion FQDN&gt; --quayRoot /opt/quay --initUser &lt;계정&gt;
+
+# 반입 이미지 → 레지스트리 (oc-mirror v2)
+oc mirror -c imageset-config.yaml --from file://&lt;반입 디렉터리&gt; docker://&lt;bastion FQDN&gt;:8443 --v2
+
+# 결과물: working-dir/cluster-resources/ 의 idms·itms·catalogsource → 설치·Operator 단계에서 사용</pre>
+<p class="ok">imageset 범위: OCP 4.22 릴리스 · OpenShift Virtualization · NMState · MTV <span class="tbd">TBD</span> · 확인: <code>podman login &lt;bastion FQDN&gt;:8443</code>, 웹 UI에서 리포지터리 확인</p>
+</section>
+
+<section id="s03"><h2>03. HV 정리 (VMware)</h2>
+<div class="meta"><span>시기 · 11월 재구성 전</span><span>담당 · VMware 엔지니어</span><span>대상 · 외부 HV#02 · 내부 HV#01·HV#03</span></div>
+<div class="tablewrap"><table><thead><tr><th>순서</th><th>작업</th><th>확인</th></tr></thead><tbody>
+<tr><td class="no">1</td><td>재구성 대상 HV의 VM(DNS VM 포함)을 원본 HV로 이동 (vMotion)<br><small>외부 HV#02 → HV#01 · 내부 HV#01·HV#03 → HV#02</small></td><td>대상 HV에 VM 없음 · DNS 조회 정상</td></tr>
+<tr><td class="no">2</td><td>ESXi 설정 백업 <span class="ex">예시</span> <code>vim-cmd hostsvc/firmware/backup_config</code></td><td>백업 파일 보관</td></tr>
+<tr><td class="no">3</td><td>유지보수 모드 → 연결 끊기 → vCenter 인벤토리에서 호스트 제거</td><td>vCenter 목록에서 제거됨</td></tr>
+<tr><td class="no">4</td><td>MTV용 vCenter 역할·계정 생성</td><td>계정으로 vCenter 로그인</td></tr>
+</tbody></table></div>
+<p class="cap">vCenter · 원본 HV는 MTV 완료까지 유지합니다.</p>
+</section>
+
+<section id="s04"><h2>04. Master 구성 · 클러스터 설치</h2>
+<div class="meta"><span>시기 · 11월</span><span>담당 · 구축팀</span><span>대상 · 외부 TNS-2100 #B · 내부 HV#03</span></div>
+
+<h3>4-1. KVM 호스트 (RHEL 9.8)</h3>
+<pre class="cmd"><span class="ex">예시</span># bond0: 호스트 원격접속 (IP)
+nmcli con add type bond con-name bond0 ifname bond0 bond.options "mode=active-backup,miimon=100"
+nmcli con add type ethernet ifname &lt;관리 포트1&gt; master bond0
+nmcli con add type ethernet ifname &lt;관리 포트2&gt; master bond0
+nmcli con mod bond0 ipv4.method manual ipv4.addresses &lt;KVM 호스트 IP&gt;/&lt;prefix&gt; ipv4.gateway &lt;관리망 GW&gt; ipv4.dns &lt;Bastion IP&gt;
+
+# bond1 → br0: VM 연결용 (IP 없음)
+nmcli con add type bridge con-name br0 ifname br0 ipv4.method disabled ipv6.method disabled stp no
+nmcli con add type bond con-name bond1 ifname bond1 master br0 bond.options "mode=active-backup,miimon=100"
+nmcli con add type ethernet ifname &lt;관리 포트3&gt; master bond1
+nmcli con add type ethernet ifname &lt;관리 포트4&gt; master bond1
+nmcli con up bond0; nmcli con up br0
+
+dnf install -y qemu-kvm libvirt virt-install
+systemctl enable --now libvirtd
+# chrony: server &lt;Bastion IP&gt; iburst</pre>
+<p class="ok">확인: <code>virsh list --all</code>, <code>bridge link</code>에 bond1 → br0, br0에 IP 없음</p>
+
+<h3>4-2. install-config · ignition 생성 (Bastion)</h3>
+<pre class="cmd"><span class="ex">예시</span># install-config.yaml 주요 값
+baseDomain: &lt;base domain&gt;
+metadata: { name: &lt;클러스터명&gt; }
+controlPlane: { name: master, replicas: 3 }
+compute: [ { name: worker, replicas: 0 } ]
+networking:
+  networkType: OVNKubernetes
+  machineNetwork: [ { cidr: &lt;관리망 CIDR&gt; } ]
+  clusterNetwork: [ { cidr: 10.128.0.0/14, hostPrefix: 23 } ]   # 사내 대역 중복 확인
+  serviceNetwork: [ 172.30.0.0/16 ]
+platform: { none: {} }
+pullSecret: '&lt;미러 레지스트리 인증&gt;'
+sshKey: '&lt;Bastion 공개키&gt;'
+additionalTrustBundle: |   # 미러 레지스트리 CA
+imageDigestSources:        # oc-mirror 결과에서 복사
+
+mkdir ~/install &amp;&amp; cp install-config.yaml ~/install/ &amp;&amp; cp install-config.yaml ~/install-config.bak
+openshift-install create manifests --dir ~/install
+# Master에 업무 Pod가 올라가지 않도록
+sed -i 's/mastersSchedulable: true/mastersSchedulable: false/' ~/install/manifests/cluster-scheduler-02-config.yml
+# 노드 chrony → Bastion (butane으로 MachineConfig 생성 후 openshift/ 에 추가)
+openshift-install create ignition-configs --dir ~/install
+cp ~/install/*.ign /var/www/html/ &amp;&amp; chmod 644 /var/www/html/*.ign</pre>
+<p class="ok">ignition 인증서는 24시간 안에 설치를 마칩니다. 넘기면 install-config.bak으로 다시 생성합니다.</p>
+
+<h3>4-3. bootstrap · master VM 생성 (KVM 호스트)</h3>
+<pre class="cmd"><span class="ex">예시</span># bootstrap 4 vCPU · 16GB · 100GB / master 8 vCPU · 32GB · 120GB
+virt-install --name bootstrap --vcpus 4 --memory 16384 --disk size=100,bus=virtio \
+  --network bridge=br0,model=virtio --cdrom /var/lib/libvirt/images/rhcos-live.iso \
+  --os-variant rhel9.4 --graphics vnc --noautoconsole
+for n in 1 2 3; do
+  virt-install --name master-$n --vcpus 8 --memory 32768 --disk size=120,bus=virtio \
+    --network bridge=br0,model=virtio --cdrom /var/lib/libvirt/images/rhcos-live.iso \
+    --os-variant rhel9.4 --graphics vnc --noautoconsole
+done</pre>
+
+<h3>4-4. RHCOS 설치 (각 VM 콘솔)</h3>
+<pre class="cmd"><span class="ex">예시</span># live ISO 부팅 후 고정 IP 설정
+sudo nmcli con mod "Wired connection 1" ipv4.method manual ipv4.addresses &lt;IP&gt;/&lt;prefix&gt; \
+  ipv4.gateway &lt;관리망 GW&gt; ipv4.dns &lt;Bastion IP&gt;
+sudo nmcli con up "Wired connection 1"
+sudo hostnamectl set-hostname master-1.&lt;클러스터&gt;.&lt;domain&gt;
+
+sudo coreos-installer install /dev/vda --copy-network \
+  --ignition-url http://&lt;Bastion IP&gt;:8080/master.ign --insecure-ignition    # bootstrap은 bootstrap.ign
+sudo reboot</pre>
+<p class="ok">순서: bootstrap → master-1 → master-2 → master-3</p>
+
+<h3>4-5. 설치 진행 확인 (Bastion)</h3>
+<pre class="cmd"><span class="ex">예시</span>openshift-install wait-for bootstrap-complete --dir ~/install --log-level=info
+export KUBECONFIG=~/install/auth/kubeconfig
+oc get nodes
+oc get co</pre>
+
+<h3>4-6. bootstrap 정리 · IP 반납</h3>
+<pre class="cmd"><span class="ex">예시</span># HAProxy 6443 · 22623 backend에서 bootstrap 줄 삭제 후
+systemctl reload haproxy
+# KVM 호스트
+virsh destroy bootstrap; virsh undefine bootstrap --remove-all-storage</pre>
+<p class="ok">bootstrap IP는 master 구성 완료 후 반납합니다.</p>
+
+<h3>4-7. etcd 백업 설정</h3>
+<pre class="cmd"><span class="ex">예시</span>oc debug node/master-1 -- chroot /host /usr/local/bin/cluster-backup.sh /home/core/assets/backup
+# Bastion: 백업 파일을 nasbak NFS로 복사 (cron) · 주기·보관 기간 TBD
+mount -t nfs &lt;백업스토리지&gt;:/&lt;경로&gt; /backup/etcd</pre>
+</section>
+
+<section id="s05"><h2>05. Worker1 편입</h2>
+<div class="meta"><span>시기 · 11월</span><span>담당 · 구축팀 · 스토리지</span><span>대상 · 외부 HV#02 · 내부 HV#01</span></div>
+
+<h3>5-1. RHCOS 설치 (IPMI 가상 미디어)</h3>
+<pre class="cmd"><span class="ex">예시</span># live ISO에서 bond0 구성 후 설치 (br-ex는 OVN이 bond0 위에 자동 생성)
+sudo nmcli con add type bond con-name bond0 ifname bond0 bond.options "mode=active-backup,miimon=100" \
+  ipv4.method manual ipv4.addresses &lt;Worker1 IP&gt;/&lt;prefix&gt; ipv4.gateway &lt;관리망 GW&gt; ipv4.dns &lt;Bastion IP&gt;
+sudo nmcli con add type ethernet ifname &lt;관리 포트1&gt; master bond0
+sudo nmcli con add type ethernet ifname &lt;관리 포트2&gt; master bond0
+sudo coreos-installer install /dev/&lt;OS 디스크&gt; --copy-network \
+  --ignition-url http://&lt;Bastion IP&gt;:8080/worker.ign --insecure-ignition</pre>
+
+<h3>5-2. CSR 승인</h3>
+<pre class="cmd"><span class="ex">예시</span>oc get csr
+oc get csr -o go-template='{{range .items}}{{if not .status}}{{.metadata.name}}{{"\n"}}{{end}}{{end}}' | xargs oc adm certificate approve
+# 두 번 나옴 (client → serving)
+oc get nodes</pre>
+<p class="ok">HAProxy 80·443 backend에 worker-1 등록 · <code>oc get co ingress</code> 정상</p>
+
+<h3>5-3. 서비스망 · nasbak 브리지 (NMState)</h3>
+<pre class="cmd"><span class="ex">예시</span>apiVersion: nmstate.io/v1
+kind: NodeNetworkConfigurationPolicy
+metadata: { name: worker1-br-svc }
+spec:
+  nodeSelector: { kubernetes.io/hostname: worker-1 }
+  desiredState:
+    interfaces:
+    - name: bond1
+      type: bond
+      state: up
+      link-aggregation: { mode: active-backup, port: [ &lt;서비스 포트1&gt;, &lt;서비스 포트2&gt; ] }
+      ipv4: { enabled: false }
+    - name: br-svc
+      type: linux-bridge
+      state: up
+      ipv4: { enabled: false }
+      bridge: { options: { stp: { enabled: false } }, port: [ { name: bond1 } ] }
+# bond2 → br-bk 도 같은 형식</pre>
+<pre class="cmd"><span class="ex">예시</span># VM용 네트워크 (VLAN은 NAD에서 태깅)
+apiVersion: k8s.cni.cncf.io/v1
+kind: NetworkAttachmentDefinition
+metadata: { name: svc-130, namespace: &lt;이관 네임스페이스&gt; }
+spec:
+  config: '{"cniVersion":"0.3.1","name":"svc-130","type":"bridge","bridge":"br-svc","vlan":130}'
+# nasbak: bk-710 (br-bk, vlan 710) · 사용 중이면 bk-701 (임시)</pre>
+<p class="ok">NMState Operator 설치 후 진행(6-1) · 확인: <code>oc get nncp</code> Available, <code>oc get nnce</code></p>
+
+<h3>5-4. FC LUN 인식</h3>
+<pre class="cmd"><span class="ex">예시</span>oc debug node/worker-1 -- chroot /host bash -c 'multipath -ll; lsblk'</pre>
+<p class="ok">이관 VM 디스크용 StorageClass 구성 방식 <span class="tbd">TBD</span> (테스트로 확정)</p>
+</section>
+
+<section id="s06"><h2>06. Operator · MTV 준비</h2>
+<div class="meta"><span>시기 · 11월 시험 이관 전</span><span>담당 · 구축팀</span></div>
+<h3>6-1. Operator 설치</h3>
+<pre class="cmd"><span class="ex">예시</span># 기본 OperatorHub 소스 끄고 미러 카탈로그 적용
+oc patch OperatorHub cluster --type merge -p '{"spec":{"disableAllDefaultSources":true}}'
+oc apply -f working-dir/cluster-resources/   # catalogsource · idms · itms
+# 콘솔 OperatorHub에서 설치: Kubernetes NMState · OpenShift Virtualization(HyperConverged 생성) · Migration Toolkit for Virtualization(ForkliftController 생성)
+oc get csv -A | grep -E 'nmstate|kubevirt|mtv'</pre>
+
+<h3>6-2. vSphere Provider · 매핑</h3>
+<pre class="cmd"><span class="ex">예시</span># vCenter 접속 정보 (Secret) → Provider
+oc create secret generic vcenter-secret -n openshift-mtv \
+  --from-literal=user=&lt;MTV 계정&gt; --from-literal=password='&lt;암호&gt;' \
+  --from-literal=url=https://&lt;vcenter FQDN&gt;/sdk --from-literal=thumbprint=&lt;SHA1 지문&gt;
+# 콘솔 Migration → Providers 에서 vSphere Provider 추가 (위 Secret 사용)
+
+# NetworkMap: 서비스 VLAN 130 → svc-130, nasbak 710 → bk-710, MGMT 포트그룹 → 매핑 안 함
+# StorageMap: 원본 데이터스토어 → 대상 StorageClass (TBD)
+oc get providers,networkmaps,storagemaps -n openshift-mtv</pre>
+<p class="ok">확인: Provider Ready · 인벤토리에 원본 VM 목록 표시</p>
+</section>
+
+<section id="s07"><h2>07. VM 이관 (콜드)</h2>
+<div class="meta"><span>시기 · 12월 · 외부망 먼저</span><span>담당 · 구축팀 · 업무 담당</span></div>
+<div class="flow small">
+<div class="fl"><b>1</b>VM 종료</div><div class="fl"><b>2</b>복사 · 변환</div><div class="fl"><b>3</b>대상 VM 기동</div><div class="fl"><b>4</b>IP 설정 · 확인</div><div class="fl"><b>5</b>업무 검증</div>
+</div>
+<h3>7-1. 시험 이관</h3>
+<p>RHEL 1대 · Windows 1대로 먼저 진행해 부팅, NIC 이름 변경, 복사 속도를 확인하고 회차(동시 이관 수)를 정합니다.</p>
+<h3>7-2. Plan · 실행</h3>
+<pre class="cmd"><span class="ex">예시</span># 콘솔 Migration → Plans: 원본 VM 선택 · NetworkMap · StorageMap · 대상 네임스페이스 · Cold
+oc get plan -n openshift-mtv
+oc get migration -n openshift-mtv
+oc describe plan &lt;plan 이름&gt; -n openshift-mtv     # VM별 진행 단계 확인
+oc get vm,vmi -n &lt;이관 네임스페이스&gt;</pre>
+<h3>7-3. 이관 후 IP 설정 (VM 안에서)</h3>
+<pre class="cmd"><span class="ex">예시</span># RHEL — 인터페이스 이름이 바뀌므로 먼저 확인
+nmcli dev status
+nmcli con add type ethernet con-name svc ifname &lt;새 NIC&gt; ipv4.method manual \
+  ipv4.addresses &lt;원래 IP&gt;/&lt;prefix&gt; ipv4.gateway &lt;GW&gt; ipv4.dns &lt;DNS&gt;
+nmcli con up svc
+
+# Windows (관리자 cmd)
+netsh interface ipv4 show interfaces
+netsh interface ipv4 set address name="&lt;이더넷 이름&gt;" static &lt;원래 IP&gt; &lt;mask&gt; &lt;GW&gt;
+netsh interface ipv4 set dnsservers name="&lt;이더넷 이름&gt;" static &lt;DNS&gt; primary</pre>
+<p class="ok">VMware Tools 미설치 · IP 유지 기능 사용 안 함. MAC은 유지됩니다. 원본 VM은 종료 상태로 보관합니다.</p>
+</section>
+
+<section id="s08"><h2>08. Worker2 전환</h2>
+<div class="meta"><span>시기 · 12월 말 · MTV · 안정화 완료 후</span><span>담당 · VMware 엔지니어 · 스토리지 · 구축팀</span><span>대상 · 외부 HV#01 · 내부 HV#02</span></div>
+<div class="tablewrap"><table><thead><tr><th>순서</th><th>작업</th><th>담당</th></tr></thead><tbody>
+<tr><td class="no">1</td><td>MTV 완료 · 업무 검증 · 원복 기준 충족 확인</td><td>구축팀 · 업무 담당</td></tr>
+<tr><td class="no">2</td><td>vCenter · DNS VM 정리, 원본 HV 호스트 제거</td><td>VMware 엔지니어</td></tr>
+<tr><td class="no">3</td><td>Worker2 FC LUN 매핑</td><td>스토리지</td></tr>
+<tr><td class="no">4</td><td>RHCOS 설치 → CSR 승인 → NNCP(br-svc · br-bk) → HAProxy 80·443에 worker-2 추가 (5장과 같은 방법)</td><td>구축팀</td></tr>
+<tr><td class="no">5</td><td>Live Migration 시험 <span class="ex">예시</span> <code>virtctl migrate &lt;VM&gt; -n &lt;ns&gt;</code></td><td>구축팀</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="s09"><h2>09. 원복 · 장애 대응</h2>
+<div class="tablewrap"><table><thead><tr><th>단계</th><th>문제</th><th>원복 방향</th></tr></thead><tbody>
+<tr><td>Bastion</td><td>구성 실패</td><td>재설치 (VMware 영향 없음)</td></tr>
+<tr><td>HV 정리</td><td>vMotion 실패</td><td>원래 HV에서 계속 운영, 원인 확인 후 재시도</td></tr>
+<tr><td>Master 설치</td><td>bootstrap 실패 · 인증서 만료</td><td>VM 삭제 → install-config.bak으로 ignition 재생성 → 재설치</td></tr>
+<tr><td>VM 이관</td><td>대상 VM 기동 · 업무 이상</td><td>대상 VM 종료 → 원본 VM(종료 보관) 기동 → 원인 확인 후 재이관</td></tr>
+<tr><td>Worker1 단독 기간</td><td>노드 장애</td><td>원본 VM 기동으로 복귀 (원본 HV · vCenter 유지 중)</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="s10"><h2>부록. 자주 쓰는 명령</h2>
+<pre class="cmd"><span class="ex">예시</span>oc get nodes -o wide                 # 노드 상태
+oc get co                            # 클러스터 Operator 상태
+oc adm top nodes                     # 노드 사용량
+oc get vm -A                         # 이관 VM 목록
+virtctl console &lt;VM&gt; -n &lt;ns&gt;         # VM 콘솔
+oc debug node/&lt;노드&gt; -- chroot /host  # 노드 접속
+journalctl -u kubelet -f             # (노드) kubelet 로그
+virsh list --all                     # (KVM 호스트) master VM 상태</pre>
+</section>
+
+<footer>근거: 구축설계서 v1.9t, 고객용 계획 v3.0pt(2026-10-15 고객 검토 반영). 명령은 테스트 환경에서 확인하며 확정합니다.</footer>
+
+</main></body></html>
