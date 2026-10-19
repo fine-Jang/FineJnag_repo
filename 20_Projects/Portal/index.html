@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FineJnag Portal</title>
+  <style>
+    :root{--navy:#102a43;--blue:#1976d2;--cyan:#47c4d9;--bg:#f4f7fb;--ink:#172b4d;--muted:#68788d;--line:#dfe7f0;--card:#fff;--shadow:0 14px 35px #102a4314}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.7 system-ui,-apple-system,"Segoe UI",sans-serif}.wrap{max-width:1180px;margin:auto;padding:28px 20px 70px}
+    header{display:flex;justify-content:space-between;align-items:center;padding:13px 0 42px}.brand{display:flex;align-items:center;gap:11px;font-size:19px;font-weight:800;letter-spacing:-.03em}.brand-mark{width:35px;height:35px;border-radius:10px;background:linear-gradient(140deg,var(--navy),var(--cyan));display:grid;place-items:center;color:#fff;font-weight:900}.meta{color:var(--muted);font-size:13px}
+    .hero{background:linear-gradient(135deg,var(--navy),#165b8e 64%,#1aa9bc);border-radius:25px;color:#fff;padding:42px 42px 38px;position:relative;overflow:hidden;box-shadow:var(--shadow)}.hero:after{content:"";position:absolute;width:380px;height:380px;border:1px solid #ffffff30;border-radius:50%;right:-115px;top:-190px;box-shadow:0 0 0 35px #ffffff0d,0 0 0 70px #ffffff08}.eyebrow{color:#8eeaf0;font-size:13px;font-weight:800;letter-spacing:.12em}.hero h1{font-size:clamp(32px,5vw,56px);line-height:1.1;margin:11px 0 12px;letter-spacing:-.06em}.hero p{max-width:650px;color:#d9f2fa;margin:0;font-size:17px}
+    .section-head{display:flex;justify-content:space-between;align-items:end;margin:31px 0 13px}.section-head h2{margin:0;font-size:22px;letter-spacing:-.04em}.section-head span{font-size:13px;color:var(--muted)}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.card{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:17px;padding:21px;box-shadow:var(--shadow);min-height:190px}.card .icon{width:40px;height:40px;border-radius:12px;background:#e5f5fb;color:#087f98;display:grid;place-items:center;font-weight:900;font-size:18px}.card h3{margin:14px 0 4px;font-size:18px}.card p{margin:0;color:var(--muted);font-size:14px}.card a{margin-top:auto;color:var(--blue);font-weight:700;text-decoration:none;padding-top:16px}.card a:hover{text-decoration:underline}.status{display:flex;gap:7px;flex-wrap:wrap;margin-top:22px}.pill{border:1px solid #cfe0ef;border-radius:999px;padding:5px 10px;color:#38617e;background:#f8fbfe;font-size:12px}.note{margin-top:27px;border-left:4px solid #f2b134;background:#fff9e9;color:#795d1e;padding:13px 15px;border-radius:6px;font-size:13px}.foot{margin-top:38px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);padding-top:16px}
+    @media(max-width:800px){.grid{grid-template-columns:1fr 1fr}}@media(max-width:560px){.wrap{padding:16px 13px 45px}header{padding-bottom:25px}.meta{display:none}.hero{padding:30px 24px}.grid{grid-template-columns:1fr}.card{min-height:165px}}
+  </style>
+</head>
+<body><main class="wrap">
+  <header><div class="brand"><div class="brand-mark">F</div>FineJnag Portal</div><div class="meta">AonFine · 운영 학습 허브</div></header>
+  <section class="hero"><div class="eyebrow">AONFINE / KNOWLEDGE HUB</div><h1>업무와 학습을<br>한 곳에서 관리하세요.</h1><p>OpenShift 운영 학습, 인프라 설계 자료와 프로젝트 문서를 빠르게 찾아볼 수 있는 내부 포털입니다.</p><div class="status"><span class="pill">정적 포털</span><span class="pill">Git 연동</span><span class="pill">반응형 UI</span></div></section>
+  <div class="section-head"><h2>바로가기</h2><span>필요한 자료를 선택하세요</span></div>
+  <section class="grid">
+    <article class="card"><div class="icon">O</div><h3>OpenShift 학습 플래너</h3><p>네트워크 기초부터 NAD·Ingress·VM까지 단계별 실습 과정과 진행률을 관리합니다.</p><a href="../../30_Study/OpenShift_Study_Planner.html">플래너 열기 →</a></article>
+    <article class="card"><div class="icon">N</div><h3>OpenShift 인프라 설계</h3><p>OCP 구성과 네트워크·배포 관련 프로젝트 설계 문서를 확인합니다.</p><a href="../SGIS_MTV/SGIS_OCP_WorkPlan_v0.1.html">설계 자료 열기 →</a></article>
+    <article class="card"><div class="icon">A</div><h3>AonFine 프로젝트</h3><p>애플리케이션 포털, 덤프 분석과 운영 인수인계 자료를 관리합니다.</p><a href="https://aonfine-aonfine.apps.ocp.test.local/AonFine/main.do" target="_blank" rel="noopener">서비스 열기 →</a></article>
+  </section>
+  <div class="note">서버 운영 기준: 이 포털은 저장소의 정적 파일을 제공하며, 비밀번호·토큰·kubeconfig는 저장하지 않습니다.</div>
+  <footer class="foot">FineJnag Portal · Repository-driven static site · Last updated 2026-10-20</footer>
+</main></body></html>
