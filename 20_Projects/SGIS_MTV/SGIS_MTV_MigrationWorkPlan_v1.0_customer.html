@@ -1,0 +1,465 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>국가데이터처 SGIS MTV 이관 작업계획서 (고객 제출용)</title>
+<style>
+/* SGIS OpenShift 구축설계서 — 단일 스타일시트 (작업계획서 v2.8 스타일 기반)
+   색 역할: 남색 = 기본·구조 / 파랑 = 재활용 TNS-2100 / 빨강 = IP 할당 필요(전용) / 주황 = Worker2 MTV 완료 후 전환 */
+:root{
+  --font:"Pretendard","Noto Sans KR","Malgun Gothic","Apple SD Gothic Neo",sans-serif;
+  --ink:#1f2a3a;--ink-2:#334155;--muted:#475569;--line:#d5dce6;--line-2:#b9c4d3;
+  --paper:#eef1f5;--surface:#fff;--soft:#f5f7fa;
+  --navy:#1e3a5f;--navy-2:#2f4f7a;--navy-soft:#e6ecf4;
+  --new:#1d5bb5;--new-soft:#e3eeff;
+  --ip:#c62828;
+  --late:#b45309;--late-ink:#7c2d12;--late-soft:#fff3df;
+  --svc:#2f6fb5;--mgmt:#6d5aa6;--bk:#b0752f;
+  --note:#9a6a2a;--note-soft:#fbf4e6;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.7 var(--font);word-break:keep-all;-webkit-font-smoothing:antialiased}
+main{max-width:1380px;margin:auto;padding:32px 36px 72px}
+a{color:var(--new)}
+p{margin:10px 0}
+li{margin:6px 0}
+b,strong{font-weight:700}
+code{font-family:var(--font);background:var(--navy-soft);color:var(--navy);padding:1px 6px;border-radius:3px;font-size:.95em}
+.muted{color:var(--muted);font-size:14.5px}
+small{color:var(--muted);font-size:13px}
+
+/* 상단 */
+.toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}
+.tag{font-size:12.5px;font-weight:700;letter-spacing:1px;color:var(--navy);border:1.5px solid var(--line-2);padding:5px 12px}
+button{font:inherit;font-size:14px;border:1.5px solid var(--line-2);background:var(--surface);color:var(--navy);padding:7px 16px;cursor:pointer}
+button:hover{background:var(--navy-soft)}
+header{position:relative;background:var(--surface);border-top:7px solid var(--navy);border-bottom:1px solid var(--line-2);padding:36px 40px}
+
+.eyebrow{color:var(--navy-2);font-size:12px;font-weight:600;letter-spacing:2.5px;max-width:70%}
+h1{font-size:33px;font-weight:800;letter-spacing:-.5px;line-height:1.45;margin:14px 0;color:var(--navy)}
+header p{color:var(--ink-2);font-size:15.5px;margin:6px 0}
+nav{display:flex;flex-wrap:wrap;gap:8px 26px;padding:16px 2px;border-bottom:1px solid var(--line-2)}
+nav a{color:var(--navy-2);font-size:14.5px;font-weight:600;text-decoration:none}
+nav a:hover{color:var(--new);text-decoration:underline}
+
+/* 본문 블록 */
+section{background:var(--surface);border-top:3px solid var(--navy-2);padding:32px 36px;margin-top:28px;scroll-margin-top:16px}
+h2{font-size:24px;font-weight:800;color:var(--navy);letter-spacing:-.3px;margin:0 0 20px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+h3{font-size:18.5px;font-weight:700;color:var(--ink);margin:32px 0 12px;padding-left:10px;border-left:4px solid var(--navy-2);line-height:1.4}
+.note{border-left:4px solid var(--note);background:var(--note-soft);color:var(--ink);font-size:15.5px;padding:14px 18px;margin:18px 0}
+
+/* 요약 카드 */
+.cards{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);margin:22px 0}
+.card{padding:18px 22px;background:var(--soft);border-right:1px solid var(--line);font-size:14.5px;color:var(--ink-2)}
+.card:last-child{border-right:0}
+.card b{display:block;font-size:30px;font-weight:800;color:var(--navy);margin:4px 0}
+.card:nth-child(3){background:var(--new-soft);box-shadow:inset 0 4px 0 var(--new)}
+.card:nth-child(3) b{color:var(--new)}
+
+/* 표 */
+.tablewrap,.figure{overflow-x:auto}
+.tablewrap{border-bottom:1px solid var(--line)}
+table{width:100%;border-collapse:collapse;font-size:14.5px;line-height:1.7}
+th,td{padding:12px 14px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}
+th{background:var(--navy-soft);color:var(--navy);font-weight:700;white-space:nowrap;border-top:2px solid var(--navy-2);border-bottom:1px solid var(--line-2)}
+tbody tr:nth-child(even){background:var(--soft)}
+tr:last-child td{border-bottom:0}
+td:first-child{color:var(--ink);font-weight:600}
+td small{display:inline-block;margin-top:2px;font-weight:600;color:var(--navy-2)}
+.risk td:first-child{white-space:nowrap}
+tr.row-new td{background:var(--new-soft)}
+tr.row-new td:first-child{box-shadow:inset 5px 0 0 var(--new)}
+
+/* 배지 */
+.badge-new,.badge-old,.badge-late,.badge-ip{display:inline-block;font-size:13px;font-weight:700;line-height:1.5;padding:1px 9px;border-radius:3px;white-space:nowrap;margin-right:5px}
+.badge-new{background:var(--new);border:1.5px solid var(--new);color:#fff}
+.badge-old{background:#fff;border:1.5px solid #8a99ad;color:var(--ink-2)}
+.badge-late{background:var(--late-soft);border:1.5px solid var(--late);color:var(--late-ink)}
+.badge-ip{background:var(--ip);border:1.5px solid var(--ip);color:#fff}
+
+/* 범례 */
+.legend{display:flex;flex-wrap:wrap;gap:10px 24px;align-items:center;padding:12px 16px;background:var(--soft);border:1px solid var(--line);color:var(--ink-2);font-size:14px}
+.legend i{display:inline-block;width:24px;height:4px;vertical-align:middle;margin-right:8px}
+.legend .old-key{width:24px;height:15px;background:#fff;border:1.5px solid #8a99ad}
+.legend .new-key{width:24px;height:15px;background:var(--new-soft);border:2.5px dashed var(--new)}
+.legend i.ip-key{width:auto;height:auto;font-style:normal;line-height:20px;padding:0 8px;background:var(--ip);color:#fff;font-weight:700;font-size:12.5px;border-radius:3px}
+
+/* 구성도 SVG */
+.figure{border:1px solid var(--line);background:#f8fafc;padding:10px}
+.figure svg{width:100%;min-width:1000px;height:auto;display:block;background:#f8fafc}
+svg text{font-family:var(--font);fill:var(--ink);font-size:15px}
+svg .small{font-size:13px;fill:var(--ink-2)}
+svg .bold{font-size:17.5px;font-weight:800;fill:var(--ink)}
+svg .stitle{font-size:18px;font-weight:800}
+svg .phase-title{fill:#fff;font-size:18px;font-weight:800}
+.panel{fill:#fff;stroke:#c8d2df}
+.panel-asis{stroke:#64748b;stroke-width:2.5}.panel-tobe{stroke:var(--navy-2);stroke-width:2.5}
+.heading-asis{fill:#64748b}.heading-tobe{fill:var(--navy-2)}
+.server{fill:#fff;stroke:#8a99ad;stroke-width:1.5}
+.pool{fill:#eef2f7;stroke:#9fb0c6}
+.vm{fill:#e7edf5;stroke:#8aa0bd}
+.wire{fill:none;stroke-width:1.8}.bus{fill:none;stroke-width:3}
+.svc{stroke:var(--svc)}.mgmt{stroke:var(--mgmt)}.bk{stroke:var(--bk)}
+.new-server{fill:var(--new-soft);stroke:var(--new);stroke-width:3;stroke-dasharray:8 4}
+.new-tag{fill:var(--new)}
+svg .tag-label{fill:#fff;font-size:13px;font-weight:700}
+svg .new-text{fill:var(--new);font-weight:700}
+.ip-badge{fill:var(--ip)}
+svg .ip-label{fill:#fff;font-size:13px;font-weight:700}
+.late-server{fill:var(--late-soft);stroke:var(--late);stroke-width:3}
+.late-badge{fill:var(--late)}
+svg .late-label{fill:#fff;font-size:13px;font-weight:700}
+.worker-late .vm{fill:#ffe7c2;stroke:#c98a3a}
+.worker-late .bold{fill:var(--late-ink)}
+.worker-late .small{fill:#6b3a12}
+/* 상세 구성도 */
+.ipmi{stroke:#64748b;stroke-dasharray:6 4}
+.fc{stroke:#0f766e}
+.bus.ipmi{stroke-width:2.2}
+.dot{fill:#334155}
+svg .lbl{paint-order:stroke;stroke:#fff;stroke-width:5px;stroke-linejoin:round}
+.svcbox{fill:#f5f7fa;stroke:#c8d2df}
+.box{fill:#fff;stroke:#8a99ad;stroke-width:1.5}
+.box-svc{fill:#eaf2fb;stroke:var(--svc);stroke-width:1.8}
+.box-bk{fill:#fbf2e7;stroke:var(--bk);stroke-width:1.8}
+.box-mgmt{fill:#f1eef9;stroke:var(--mgmt);stroke-width:1.8}
+.box-off{fill:#f1f5f9;stroke:#94a3b8;stroke-width:1.5;stroke-dasharray:6 4}
+.box-tbd{fill:#fff8e6;stroke:#c99a2e;stroke-width:1.8;stroke-dasharray:7 4}
+.box-st{fill:#e9f5f2;stroke:#0f766e;stroke-width:2}
+.arrow{fill:none;stroke:#475569;stroke-width:1.8}
+.arrow-tbd{fill:none;stroke:#c99a2e;stroke-width:1.8;stroke-dasharray:6 4}
+.legend i.ipmi-key{height:0;background:none;border-top:3px dashed #64748b}
+.legend .tbd-key{width:24px;height:15px;background:#fff8e6;border:1.5px dashed #c99a2e}
+
+/* 장비 재구성 매핑 행 (v1.1 — 곡선 화살표 구성도 대체) */
+.remap{display:flex;flex-direction:column;gap:14px;margin:20px 0}
+.remap-row{display:grid;grid-template-columns:40px minmax(0,1fr) 112px minmax(0,1fr);gap:0 16px;align-items:center}
+.remap-step{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:#fff;background:var(--navy-2);justify-self:center}
+.remap-step.s-new{background:#fff;border:2px solid var(--new);color:var(--new)}
+.remap-step.s-chg{background:#be185d}
+.remap-step.s-late{background:var(--late)}
+.remap-box{border:1.5px solid var(--line-2);border-radius:8px;padding:14px 16px;background:#fff;min-height:92px}
+.remap-box .ttl{font-size:16px;font-weight:800;color:var(--ink);margin-bottom:2px}
+.remap-box .sub{font-size:13.5px;color:var(--ink-2)}
+.remap-box .meta{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.65}
+.remap-box.is-empty{display:flex;align-items:center;justify-content:center;border-style:dashed;background:var(--soft);color:var(--muted);font-size:13.5px}
+.remap-box.is-new{background:var(--new-soft);border:2px dashed var(--new)}
+.remap-box.is-worker{background:var(--soft)}
+.remap-box.is-late{background:var(--late-soft);border:2px solid var(--late)}
+.remap-box .chip{display:inline-block;margin-top:8px;font-size:12px;font-weight:700;padding:2px 8px;border-radius:3px;background:#e8f6ee;color:#166534;border:1px solid #86cfa8}
+.remap-arrow{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.remap-arrow .glyph{font-size:24px;line-height:1;font-weight:700}
+.remap-arrow .lbl{font-size:12px;font-weight:700;white-space:nowrap}
+.remap-arrow.a-chg .glyph,.remap-arrow.a-chg .lbl{color:#be185d}
+.remap-arrow.a-late .glyph,.remap-arrow.a-late .lbl{color:var(--late)}
+.remap-arrow.a-new .glyph,.remap-arrow.a-new .lbl{color:var(--new)}
+.remap-head{margin-bottom:-4px}
+.remap-colhead{font-size:13.5px;font-weight:800;letter-spacing:1px;text-align:center;padding:7px 12px;border-radius:6px}
+.ch-asis{background:#e2e8f0;color:#475569}.ch-tobe{background:var(--navy-2);color:#fff}
+.remap-box .spec{font-size:13px;color:var(--muted);margin-top:2px}
+.remap-net-title{font-size:12.5px;font-weight:700;color:var(--muted);margin:26px 0 8px;letter-spacing:.5px}
+
+/* 설계 항목 상태 · 그림 설명 · 확인 필요 목록 (v1.3) */
+.st{display:inline-block;font-size:12px;font-weight:700;padding:1px 8px;border-radius:3px;white-space:nowrap}
+.st-ok{background:#e8f6ee;color:#166534;border:1px solid #86cfa8}.st-dec{background:#fff3df;color:#7c2d12;border:1px solid #e0a35a}.st-chk{background:#fff8e6;color:#7a5a14;border:1px dashed #c99a2e}
+.fignote{margin:10px 0 0;padding-left:20px;font-size:14.5px;color:var(--ink-2)}
+.checks{list-style:none;padding:0;margin:8px 0}.checks li{padding:5px 0;border-bottom:1px solid var(--line);font-size:14.5px}.checks .st{margin-right:10px}
+
+/* IP 할당 상세 */
+.ip-need{margin-top:8px;border-left:3px solid var(--ip);background:#fff5f5;padding:6px 10px;border-radius:0 4px 4px 0}
+
+/* Master KVM 호스트 안의 VM 표시 */
+.kvm{margin-top:10px;border:1.2px dashed #7d93b2;border-radius:6px;background:#f5f8fc;padding:8px 10px}
+.kvm-head{font-size:12.5px;font-weight:700;color:var(--navy-2);margin-bottom:6px}
+.kvm-vms{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.kvm-vm{display:flex;flex-direction:column;align-items:center;gap:3px;background:#fff;border:2px solid var(--navy-2);border-radius:6px;padding:8px 6px;text-align:center}
+.kvm-vm .vm-mark{background:var(--navy-2);color:#fff;font-size:11px;font-weight:800;line-height:1;padding:3px 7px;border-radius:3px}
+.kvm-vm .vm-name{font-size:14.5px;font-weight:800;color:var(--ink)}
+.kvm-vm .vm-role{font-size:12px;color:var(--muted)}
+.kvm{border:1.5px dashed var(--navy-2)}
+.kvm-head{font-size:13px}.kvm-head b{color:var(--ink)}
+.kvm-foot{font-size:12.5px;color:var(--muted);margin-top:6px}
+
+/* 단계 카드 */
+.steps{display:grid;grid-template-columns:repeat(5,1fr);border:1px solid var(--line-2)}
+.step{padding:16px 18px;background:var(--soft);border-right:1px solid var(--line-2);border-top:4px solid var(--navy-2)}
+.step:last-child{border-right:0}
+.step strong{display:block;margin-bottom:8px;color:var(--navy);font-size:16px}
+.step p{font-size:14.5px;color:var(--ink-2)}
+
+footer{margin-top:28px;padding-top:22px;border-top:1px solid var(--line-2);color:var(--muted);font-size:13.5px;line-height:1.8}
+
+/* 구축설계서 추가 — 장비 재구성 구성도 · 미확정 값 */
+h4{font-size:16px;font-weight:700;color:var(--navy-2);margin:22px 0 10px}
+.tbd{display:inline-block;font-size:12.5px;font-weight:700;line-height:1.5;padding:0 7px;border-radius:3px;background:#fff8e6;border:1.5px dashed #c99a2e;color:#7a5a14;white-space:nowrap}
+.arrow-case{fill:none;stroke:#fff;stroke-width:8}
+.arrow-chg{fill:none;stroke:#be185d;stroke-width:3}
+.arrow-late{fill:none;stroke:var(--late);stroke-width:3;stroke-dasharray:10 5}
+.arrow-mtv{fill:none;stroke:#15803d;stroke-width:4}
+.lbl-bg{fill:#fff;stroke-width:1.5}.lbl-chg{stroke:#be185d}.lbl-late{stroke:var(--late)}.lbl-mtv{stroke:#15803d}
+svg .arc-label{fill:#9d174d;font-weight:800;font-size:14px}
+svg .late-arc-label{fill:var(--late-ink)}
+svg .mtv-label{fill:#166534;font-weight:800;font-size:14px}
+.legend .late-key{width:24px;height:15px;background:var(--late-soft);border:2.5px solid var(--late)}
+.legend i.chg-key{height:0;background:none;border-top:3px solid #be185d}
+.legend i.late-arrow-key{height:0;background:none;border-top:3px dashed var(--late)}
+.legend i.mtv-key{height:0;background:none;border-top:4px solid #15803d}
+.num-chg{fill:#be185d}.num-late{fill:var(--late)}.num-mtv{fill:#15803d}
+svg .num-label{fill:#fff;font-size:13px;font-weight:800}
+.panel-asis-lite{fill:#fbfcfd;stroke:#cbd5e1;stroke-width:1.5}
+.heading-asis-lite{fill:#e2e8f0}
+svg .phase-title-lite{fill:#475569;font-size:16px;font-weight:800}
+.asis-server{fill:#f8fafc;stroke:#a7b3c4}
+svg .bold-s{font-size:15px;font-weight:800;fill:var(--ink-2)}
+svg .bold-l{font-size:19px;font-weight:800;fill:var(--ink)}
+.worker-late .bold-l{fill:var(--late-ink)}
+svg .xs{font-size:12px;fill:var(--muted)}
+svg .tns-title{font-size:13.5px}
+.num-new{fill:#fff}
+svg .num-new-label{fill:var(--new);font-size:12px;font-weight:800}
+.kvm-frame{fill:#f5f8fc;stroke:#7d93b2;stroke-width:1.2;stroke-dasharray:5 3}
+svg .kvm-label{fill:var(--navy-2);font-weight:700}
+.kvm-vm{fill:#fff;stroke:#6b86ab;stroke-width:1.4}
+.vm-mark{fill:var(--navy-2)}
+svg .vm-mark-label{fill:#fff;font-size:10px;font-weight:800;text-anchor:middle}
+svg .vm-name{fill:var(--ink);font-weight:600}
+.step-kind strong{display:flex;align-items:center;gap:8px}
+.stepno{display:inline-flex;align-items:center;justify-content:center;flex:none;width:24px;height:24px;border-radius:50%;color:#fff;font-size:13px;font-weight:800;line-height:1}
+.n-add{background:#fff;border:2px solid var(--new);color:var(--new)}.n-chg{background:#be185d}.n-mtv{background:#15803d}.n-late{background:var(--late)}
+.step.k-add{border-top-color:var(--new)}.step.k-chg{border-top-color:#be185d}.step.k-mtv{border-top-color:#15803d}.step.k-late{border-top-color:var(--late)}
+.step small{display:block;margin-top:6px;font-size:13px;color:var(--muted)}
+@media(max-width:800px){
+  main{padding:16px}header{padding:24px}header:after{font-size:20px;right:16px;top:18px}
+  .eyebrow{max-width:66%;font-size:10px}h1{font-size:25px}section{padding:20px 16px}
+  .cards,.steps{grid-template-columns:1fr 1fr}.card,.step{border-bottom:1px solid var(--line)}
+  table{min-width:720px}
+  .remap-row{grid-template-columns:1fr}.remap-step{justify-self:start}.remap-head{display:none}
+  .remap-arrow{flex-direction:row;padding:4px 0}.remap-arrow .glyph{transform:rotate(90deg)}
+}
+@media print{
+  @page{size:A3 landscape;margin:12mm}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{background:#fff;font-size:12px}main{padding:0;max-width:none}
+  .toolbar,nav{display:none}
+  header{padding:20px 28px}header:after{font-size:28px}h1{font-size:26px}
+  section{padding:16px 20px;margin-top:16px;break-inside:auto}
+  h2,h3{break-after:avoid}.figure,table,.steps{break-inside:avoid}
+  .figure{padding:4px}.figure svg{min-width:0}
+  .remap-row{break-inside:avoid}
+  .card{padding:10px 15px}.card b{font-size:22px}
+  table{font-size:11.5px}th,td{padding:7px 9px}thead{display:table-header-group}tr{break-inside:avoid}
+  .note,.muted{font-size:11.5px}footer{font-size:10.5px}
+}
+
+/* v1.4 현장 설치용 */
+.ipform td{border:1px solid var(--line-2)}.ipform td.blank{min-width:150px;height:42px;background:#fff}
+.ipform tr.net-head td{background:var(--navy-soft);color:var(--navy);font-weight:800}
+.ipform .na{color:var(--muted)}
+.ipform-net td:not(:first-child){min-width:170px;height:42px}
+.phase{margin:22px 0;border:1px solid var(--line-2);border-radius:6px;overflow:hidden;break-inside:avoid}
+.phase-head{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--navy);color:#fff}
+.phase-head b{font-size:19px}.phase-head small{display:inline;margin:0;font-size:14px;font-weight:500;color:#cfdbee}
+.phase-no{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:#fff;color:var(--navy);font-weight:800;font-size:16px;flex:none}
+.cktable{font-size:16px}.cktable th{border-top:0}.cktable td{padding:13px 14px;vertical-align:middle}
+.cktable td:first-child{font-weight:400}
+.cktable{table-layout:fixed}.c-ck{width:76px;text-align:center!important}.cktable th:last-child{width:32%}
+.ck{display:inline-block;cursor:pointer}.ck input{position:absolute;opacity:0;width:0;height:0}
+.ck span{display:inline-block;width:28px;height:28px;border:2.5px solid var(--navy-2);border-radius:5px;background:#fff;vertical-align:middle;position:relative}
+.ck input:checked+span{background:#15803d;border-color:#15803d}
+.ck input:checked+span:after{content:"";position:absolute;left:8px;top:2px;width:8px;height:15px;border:solid #fff;border-width:0 3.5px 3.5px 0;transform:rotate(45deg)}
+.ck input:focus-visible+span{outline:3px solid #93c5fd;outline-offset:2px}
+.ck-reset{margin-left:8px;font:inherit;font-size:13.5px;padding:3px 12px;border:1px solid var(--line-2);border-radius:4px;background:var(--soft);cursor:pointer}
+@media print{.ck-reset{display:none}.ck input:checked+span{background:#fff;border-color:var(--navy-2)}.ck input:checked+span:after{display:none}.cktable{font-size:13px}.phase{margin:12px 0}}
+
+/* v1.5 개요 그림 · NIC 표 */
+.cap{margin:8px 0 0;font-size:13.5px;color:var(--muted)}
+.env-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.env-net{border:1px solid var(--line-2);border-radius:6px;background:var(--soft);overflow:hidden}
+.env-net-head{padding:9px 14px;background:var(--navy);color:#fff;font-weight:700;font-size:14.5px}
+.env-hosts{display:flex;flex-wrap:wrap;gap:10px;padding:14px}
+.env-host{flex:1 1 150px;background:#fff;border:1.5px solid var(--line-2);border-radius:6px;padding:10px 12px}
+.env-name{font-weight:800;color:var(--navy);font-size:16px}
+.env-spec{font-size:12.5px;color:var(--muted);margin:2px 0 8px}
+.env-chips{display:flex;flex-wrap:wrap;gap:5px}
+.ec{font-size:12.5px;font-weight:700;padding:2px 8px;border-radius:3px;border:1px solid var(--line-2);background:var(--soft);color:var(--ink-2)}
+.ec-vm{background:#e8f6ee;color:#166534;border-color:#86cfa8}
+.ec-dns{background:#fff3df;color:#7c2d12;border-color:#e0a35a}
+.ec-sys{background:#f1f5f9;color:#475569}
+.ec-svc{background:var(--navy-soft);color:var(--navy);border-color:#b9c8dd}
+.ec-mvm{background:#eef2ff;color:#3730a3;border-color:#a5b4fc}
+.ec-tmp{background:#fff;color:var(--muted);border-style:dashed}
+.ec-late{background:var(--late-soft);color:var(--late-ink);border-color:var(--late)}
+.env-host.n-bas,.env-host.n-mst{border-color:var(--new)}
+.env-host.n-late{border-style:dashed;border-color:var(--late)}
+.env-foot{padding:0 14px 12px;font-size:13px;color:var(--ink-2)}
+.ipform tr.net-row td{background:var(--soft);font-weight:700}
+.ipform tr.net-row td.blank{background:#fff}
+.env-ocp .env-hosts{display:grid;grid-template-columns:repeat(4,1fr)}
+.nicform tr.grp td{border-top:2px solid var(--line-2)}.nicform td[rowspan]{vertical-align:middle;background:var(--soft);font-weight:700}
+.nicform td.na{color:var(--muted);text-align:center}
+@media(max-width:800px){.env-grid{grid-template-columns:1fr}}
+@media print{.env-net{break-inside:avoid}}
+
+/* v1.0 작업계획서 추가 — 명령 블록 · 위치 표시 · 정지 조건 */
+pre{background:#f7f9fc;border:1px solid var(--line);border-left:4px solid var(--navy-2);padding:12px 16px;margin:6px 0 16px;font:13.5px/1.65 Consolas,"D2Coding","Courier New",monospace;color:#1e293b;overflow-x:auto;white-space:pre}
+pre code,.cmd-h code{background:none;padding:0}
+.cmd-h{display:inline-block;margin-top:12px;font-size:12.5px;font-weight:700;letter-spacing:.3px;color:#fff;background:var(--navy-2);padding:2px 10px;border-radius:3px 3px 0 0}
+.cmd-h+pre{margin-top:0}
+.stop{border-left:4px solid var(--ip);background:#fff5f5;color:var(--ink);font-size:15.5px;padding:14px 18px;margin:18px 0}
+.stop b:first-child{color:var(--ip)}
+.stop li{margin:6px 0}.stop li b:first-child{color:var(--ink)}
+.ok{border-left:4px solid #15803d;background:#effaf3;font-size:15px;padding:12px 18px;margin:12px 0}
+.ok b:first-child{color:#166534}
+ol.flow{margin:10px 0;padding-left:24px}ol.flow li{margin:8px 0}
+.chk{list-style:none;padding:0;margin:10px 0}.chk li{padding:8px 0 8px 30px;border-bottom:1px solid var(--line);position:relative;font-size:15px}
+.chk li:before{content:"";position:absolute;left:4px;top:12px;width:15px;height:15px;border:2px solid var(--navy-2);border-radius:3px;background:#fff}
+h3 .sub{font-size:14px;font-weight:600;color:var(--muted);margin-left:8px}
+.steps.s6{grid-template-columns:repeat(6,1fr)}
+.toc-sub{display:block;font-size:12.5px;font-weight:500;color:var(--muted)}
+@media(max-width:800px){.steps.s6{grid-template-columns:1fr 1fr}}
+@media print{pre{white-space:pre-wrap;word-break:break-all;font-size:10.5px;break-inside:avoid}.stop,.ok{font-size:11.5px}}
+.rs td:first-child{font-weight:400}.rs td[rowspan]{font-weight:700;vertical-align:middle;background:var(--soft);border-right:1px solid var(--line)}.rs tbody tr:nth-child(even){background:transparent}
+</style></head><body><main><div class="toolbar" style="justify-content:flex-end"><span class="tag">VERSION 1.0 / 고객 제출용 요약본</span></div>
+
+<header><div class="eyebrow">SGIS INFRASTRUCTURE / MIGRATION WORK PLAN</div><h1>국가데이터처 SGIS 오픈플랫폼<br>VMware → OpenShift 전환 및 MTV 이관 작업계획서</h1><p>Bastion 구축 → 클러스터 설치 → Worker1 전환 → 클러스터 구성 → VM 이관 → Worker2 전환</p><p>고객 제출용 요약본 · 수정일 2026.11.13 · 외부망 먼저 수행 후 내부망 적용</p></header>
+<nav aria-label="목차"><a href="#overview">01 작업 개요</a><a href="#steps">02 단계별 작업</a><a href="#migrate">03 VM 이관</a><a href="#request">04 고객사 협조 사항</a><a href="#risk">05 주요 위험 및 대응</a><a href="#confirm">06 확정 필요 사항</a></nav>
+
+<section id="overview"><h2>01. 작업 개요</h2>
+<p>본 작업은 국가데이터처 SGIS 오픈플랫폼의 VMware 가상머신을 OpenShift Virtualization으로 이관하는 작업입니다. 망별로 Bastion과 Master KVM 서버를 구축하여 OpenShift 클러스터를 설치하고, 비어 있는 하이퍼바이저를 Worker1로 전환한 뒤 Migration Toolkit for Virtualization(MTV)으로 VM을 이관합니다. 이관과 업무 확인이 끝나면 원본 하이퍼바이저를 Worker2로 전환합니다.</p>
+<p>외부망을 먼저 수행하고, 외부망에서 검증한 절차와 소요 시간을 내부망에 적용합니다.</p>
+
+<div class="cards">
+<div class="card">OpenShift 클러스터<b>2개</b>외부망 1 / 내부망 1 · 망별 독립</div>
+<div class="card">이관 대상 VM<b>35대</b>외부망 11 / 내부망 24 · vCenter·DNS 제외</div>
+<div class="card">적용 버전<b>OCP 4.22</b>RHCOS · Bastion RHEL 9.8 · MTV 2.12</div>
+<div class="card">이관 방식<b>Cold</b>VM 종료 후 복사 · VM 1대씩</div>
+</div>
+
+<h3>전체 작업 순서</h3>
+<div class="steps s6">
+<div class="step"><strong>① Bastion 구축</strong><p>DNS · 로드밸런서 · 시간 동기화 · 미러 레지스트리</p></div>
+<div class="step"><strong>② 클러스터 설치</strong><p>Master KVM 서버에 Master VM 3대 구성, OpenShift 설치</p></div>
+<div class="step"><strong>③ Worker1 전환</strong><p>VM이 없는 하이퍼바이저를 OpenShift 노드로 재구성</p><small>원복 불가</small></div>
+<div class="step"><strong>④ 클러스터 구성</strong><p>가상화 · MTV · 네트워크 · 스토리지 · 업데이트 서비스</p></div>
+<div class="step"><strong>⑤ VM 이관</strong><p>VM 점검 → 1대씩 이관 → 업무 확인</p><small>VM별 서비스 중단</small></div>
+<div class="step"><strong>⑥ Worker2 전환</strong><p>원본 하이퍼바이저 재구성, 이중화 시험, etcd 백업</p><small>이후 원본 복귀 불가</small></div>
+</div>
+
+<h3>장비 전환 계획</h3>
+<div class="tablewrap"><table class="rs"><thead><tr><th>망</th><th>장비</th><th>현재</th><th>전환 후</th><th>시점</th></tr></thead><tbody>
+<tr><td rowspan="4">외부망</td><td>재활용 TNS-2100</td><td>—</td><td>Bastion</td><td>① 최초 구축</td></tr>
+<tr><td>재활용 TNS-2100</td><td>—</td><td>Master KVM 서버 (Master VM 3대)</td><td>②</td></tr>
+<tr><td>HV#02</td><td>DNS VM · vCLS</td><td>Worker1</td><td>③ DNS VM 이동 후</td></tr>
+<tr><td>HV#01</td><td>업무 VM 11대 · vCenter</td><td>Worker2</td><td>⑥ 이관 완료 후</td></tr>
+<tr><td rowspan="4">내부망</td><td>재활용 TNS-2100</td><td>—</td><td>Bastion</td><td>① 최초 구축</td></tr>
+<tr><td>HV#03</td><td>DNS VM · vCLS</td><td>Master KVM 서버 (Master VM 3대)</td><td>② DNS VM 이동 후</td></tr>
+<tr><td>HV#01</td><td>vCLS</td><td>Worker1</td><td>③</td></tr>
+<tr><td>HV#02</td><td>업무 VM 24대 · vCenter</td><td>Worker2</td><td>⑥ 이관 완료 후</td></tr>
+</tbody></table></div>
+
+<div class="stop"><b>주의할 점</b>
+<ul style="margin:8px 0 0;padding-left:20px">
+<li><b>Worker 전환은 원복이 불가합니다.</b> 하이퍼바이저에 OpenShift 노드 OS(RHCOS)를 설치하면 ESXi와 기존 설정이 삭제됩니다. 전환 전 확인 항목을 모두 충족한 경우에만 진행합니다.</li>
+<li><b>Worker2 전환 이후에는 원본 VM으로 복귀할 수 없습니다.</b> 원본 하이퍼바이저를 전환하면 VMware 환경과 vCenter가 함께 사라집니다. 모든 VM의 이관 후 확인과 업무 담당의 원본 불필요 확인이 끝난 뒤에 진행합니다.</li>
+<li><b>원본 VM은 끈 상태로 보존합니다.</b> 이관이 끝난 원본 VM은 Worker2 전환 전까지 삭제하지 않으며, 문제가 생기면 원본 VM을 다시 기동하여 서비스를 복구합니다.</li>
+<li><b>DNS VM은 모든 VM 이관이 끝날 때까지 유지합니다.</b> MTV는 vCenter·ESXi에 이름으로 접속하므로, DNS VM을 먼저 끄면 이관이 중단될 수 있습니다.</li>
+</ul></div>
+</section>
+
+<section id="steps"><h2>02. 단계별 작업 내용</h2>
+<div class="tablewrap"><table><thead><tr><th>단계</th><th>작업 내용</th><th>완료 기준</th><th>협조</th></tr></thead><tbody>
+<tr><td>① Bastion 구축</td><td>재활용 TNS-2100에 RHEL 9.8을 설치하고 관리망(2포트)과 백업망(nas, 2포트)을 구성합니다. DNS, 로드밸런서, 시간 동기화(NTP), 설치 파일 배포용 HTTP 서버, 미러 레지스트리를 구축하고 반입한 설치 이미지와 VDDK 이미지를 적재합니다. vCenter·ESXi 이름도 Bastion DNS에 등록합니다.</td><td>DNS 정·역방향 조회 정상, 미러 레지스트리 접속 정상, 로드밸런서 기동</td><td>NTP 장비 정보, 방화벽 정책</td></tr>
+<tr><td>② 클러스터 설치</td><td>Master KVM 서버에 RHEL 9.8과 KVM을 구성하고 Master VM 3대와 설치용 임시 VM(bootstrap)을 만듭니다. 폐쇄망 UPI 방식으로 OpenShift를 설치하며, Master에는 업무 VM이 올라가지 않도록 설치 전에 설정합니다. 설치 후 임시 VM은 삭제합니다.</td><td>Master 3대 Ready, 미러 이미지 설정 적용</td><td>—</td></tr>
+<tr><td>③ Worker1 전환</td><td>DNS VM을 원본 하이퍼바이저로 옮겨 대상 하이퍼바이저를 비웁니다. 설정을 백업하고 vCenter에서 제거한 뒤 LUN 매핑을 해제합니다. 노드 네트워크(관리·백업·서비스 bond)를 구성하고 OpenShift 노드로 설치하여 클러스터에 편입합니다. 기존 하이퍼바이저 IP를 재사용합니다.</td><td>Worker1 Ready, bond 이중화 시험 완료, 스토리지 경로 이중화 확인, 설치 완료</td><td>VMware · 스토리지 · 네트워크</td></tr>
+<tr><td>④ 클러스터 구성</td><td>OpenShift Virtualization, MTV, NMState를 설치합니다. VM이 연결될 서비스망(VLAN 130)·백업망 브리지와 네트워크 정의를 만들고, 스토리지 엔지니어가 구성한 StorageClass를 확인합니다. 업데이트 서비스(OSUS)를 구성합니다.</td><td>Operator 정상, 네트워크 정의 생성, 테스트 볼륨 할당 정상</td><td>스토리지(CSI·StorageClass)</td></tr>
+<tr><td>⑤ VM 이관</td><td>VM별 점검 후 MTV로 VM을 1대씩 이관합니다. 첫 이관은 1대로 수행하여 결과를 확인한 뒤 나머지를 진행합니다. 03장의 절차를 따릅니다.</td><td>VM 기동, IP·MAC 유지, 업무 확인</td><td>VMware(계정), 업무 담당</td></tr>
+<tr><td>⑥ Worker2 전환</td><td>전환 전 확인 후 원본 하이퍼바이저를 vCenter에서 제거하고 Worker2로 전환합니다. Worker 2대 간 Live Migration을 시험하고 etcd 일일 백업을 설정합니다.</td><td>Worker2 Ready, Live Migration 성공, 첫 백업 생성</td><td>VMware · 스토리지 · 업무 담당</td></tr>
+</tbody></table></div>
+<p>내부망은 HV#03을 Master KVM 서버로, 비어 있는 HV#01을 Worker1로, 업무 VM이 있는 HV#02를 Worker2로 전환하는 점만 다르며 같은 순서로 진행합니다. 내부망 HV#03의 DNS VM은 Master 구성 전에 HV#02로 옮깁니다.</p>
+
+<h3>단계 진입 조건</h3>
+<div class="tablewrap"><table><thead><tr><th>단계</th><th>진행 전 확인</th></tr></thead><tbody>
+<tr><td>Worker1 전환 전</td><td>DNS VM 이동 및 이름 해석 정상 · 원본 하이퍼바이저의 업무 VM 정상 · 필요한 VM 백업 확보 · ESXi 설정 백업 · 대상 하이퍼바이저에 vCLS 외 VM 없음 · LUN 매핑 해제 일정 확정</td></tr>
+<tr><td>VM 이관 시작 전</td><td>Worker1 스토리지 경로 이중화 확인 · 테스트 볼륨 할당 정상 · vCenter 443, ESXi 443·902 접속과 이름 해석 정상 · VM별 점검 기록 완료</td></tr>
+<tr><td>Worker2 전환 전</td><td>모든 VM의 이관 후 확인 완료 · 필요한 VM 백업 확보 · 업무 담당의 원본 VM 불필요 확인 · vCenter 호스트 제거 순서 확정 · vCenter·DNS VM 삭제 최종 확인</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="migrate"><h2>03. VM 이관</h2>
+<p>이관은 Cold 방식으로, 원본 VM을 종료한 뒤 디스크를 네트워크(VDDK)로 복사하여 OpenShift VM으로 변환합니다. VM마다 이관 시간 동안 서비스가 중단되며 VM은 1대씩 이관합니다. 망마다 vCenter가 따로 있어 이관 연결(Provider)도 망별로 구성합니다.</p>
+
+<h3>이관 전 VM 점검</h3>
+<div class="tablewrap"><table><thead><tr><th>점검 항목</th><th>확인 내용</th></tr></thead><tbody>
+<tr><td>OS · 부팅</td><td>OS 종류·버전(RHEL 8.9, Windows Server 2022), BIOS/EFI, Secure Boot 사용 여부</td></tr>
+<tr><td>네트워크 · IP</td><td>어댑터별 포트그룹(서비스 130, nasbak 701·710)과 IP/prefix, 게이트웨이, DNS, 정적 경로 기록</td></tr>
+<tr><td>디스크</td><td>디스크 개수·크기, 공유 디스크·RDM·vTPM·암호화 여부, 게스트 안 NFS·iSCSI 직접 마운트 여부</td></tr>
+<tr><td>스냅샷</td><td>이관 전 스냅샷 정리. 이관 시작 후에는 스냅샷을 만들지 않습니다.</td></tr>
+<tr><td>Windows</td><td>Fast Startup 해제, 동적 디스크 여부, DHCP Client 서비스 상태</td></tr>
+<tr><td>에이전트</td><td>백신 등 에이전트 설치 여부</td></tr>
+</tbody></table></div>
+
+<h3>이관 절차</h3>
+<div class="tablewrap"><table><thead><tr><th>순서</th><th>작업</th></tr></thead><tbody>
+<tr><td>1. 연결 구성</td><td>vSphere 연결(Provider)을 만들고 인벤토리에 VM이 보이는지 확인합니다.</td></tr>
+<tr><td>2. 매핑</td><td>원본 포트그룹을 대상 네트워크에 연결합니다(서비스 130 → 서비스망, nasbak 701·710 → 백업망). 원본 데이터스토어를 대상 스토리지에 연결합니다.</td></tr>
+<tr><td>3. 이관 계획</td><td>VM 1대 단위로 이관 계획을 만들고 사전 검증 결과에 경고가 없는지 확인합니다.</td></tr>
+<tr><td>4. 원본 종료</td><td>게스트 안에서 원본 VM을 정상 종료합니다(VMware Tools를 설치하지 않으므로 직접 종료).</td></tr>
+<tr><td>5. 이관 실행</td><td>이관을 실행하고 진행 상태를 확인합니다. 대상 VM은 꺼진 상태로 만들어 원본과 동시에 켜지지 않게 합니다.</td></tr>
+<tr><td>6. 확인 후 기동</td><td>대상 VM을 기동하여 아래 이관 후 확인을 수행합니다.</td></tr>
+</tbody></table></div>
+
+<h3>이관 후 확인</h3>
+<ul class="chk">
+<li>VM이 Worker 노드에서 정상 기동합니다.</li>
+<li>서비스망 IP와 MAC이 이관 전과 같습니다. IP가 적용되지 않으면 사전 기록 값으로 게스트 안에서 설정합니다.</li>
+<li>기본 경로가 중복되지 않았습니다.</li>
+<li>게스트 에이전트가 동작합니다.</li>
+<li>업무 담당이 서비스 동작을 확인했습니다.</li>
+<li>원본 VM은 전원을 끈 상태로 보존합니다.</li>
+</ul>
+</section>
+
+<section id="request"><h2>04. 고객사 협조 사항</h2>
+<div class="tablewrap"><table class="rs"><thead><tr><th>담당</th><th>요청 작업</th><th>시점</th></tr></thead><tbody>
+<tr><td rowspan="5">VMware 엔지니어</td><td>DNS VM의 호스트·스토리지 동시 vMotion(외부 HV#02 → HV#01, 내부 HV#03 → HV#02)</td><td>Worker1·Master 전환 전</td></tr>
+<tr><td>전환 대상 하이퍼바이저의 유지보수 모드 전환과 ESXi 설정 백업</td><td>전환 전</td></tr>
+<tr><td>전환 대상 하이퍼바이저의 vCenter 제거</td><td>전환 직전</td></tr>
+<tr><td>MTV용 vSphere 역할·계정 발급(데이터센터 수준)</td><td>VM 이관 전</td></tr>
+<tr><td>vCenter VM이 있는 원본 하이퍼바이저의 제거 순서 결정</td><td>Worker2 전환 전</td></tr>
+<tr><td rowspan="4">스토리지 엔지니어</td><td>전환 대상 하이퍼바이저의 VMFS LUN 매핑 해제</td><td>각 전환 직전</td></tr>
+<tr><td>Worker의 VM 디스크용 LUN 매핑, multipath 구성</td><td>Worker 편입 전</td></tr>
+<tr><td>CSI 드라이버·StorageClass 구성, RWX 지원 확인</td><td>VM 이관 전</td></tr>
+<tr><td>원본 LUN·데이터스토어 유지(이관 완료까지)</td><td>이관 기간</td></tr>
+<tr><td rowspan="2">네트워크 담당</td><td>Worker의 백업망(nas)·서비스망(svc) 포트 채널(LACP) 구성, 서비스망 VLAN 130 trunk 허용</td><td>Worker 편입 전</td></tr>
+<tr><td>Worker 설치 직후 bond 이중화 시험 참여</td><td>Worker 편입 시</td></tr>
+<tr><td rowspan="3">업무 담당</td><td>VM별 이관 전 점검 기록</td><td>VM 이관 전</td></tr>
+<tr><td>VM별 이관 후 업무 확인</td><td>VM 이관 시</td></tr>
+<tr><td>원본 VM 불필요 확인(Worker2 전환 승인)</td><td>Worker2 전환 전</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="risk"><h2>05. 주요 위험 및 대응</h2>
+<div class="tablewrap risk"><table><thead><tr><th>위험</th><th>내용</th><th>대응</th></tr></thead><tbody>
+<tr><td>Worker1 단독 운영</td><td>Worker2 편입 전까지 Worker 1대가 모든 업무 VM과 클러스터 서비스를 수용합니다. 이 기간은 Red Hat 권장 구성(Worker 2대 이상)을 벗어나며, 내부망은 메모리 사용 예상이 약 82%로 여유가 적습니다.</td><td>편입 직후 자원 사용량을 기록하고, 부족하면 노드 추가를 검토합니다. 이 기간에는 노드 재부팅이 따르는 변경을 동결합니다.</td></tr>
+<tr><td>서비스 중단</td><td>Cold 이관이므로 VM마다 이관 시간 동안 서비스가 중단됩니다.</td><td>첫 VM으로 소요 시간을 측정하여 VM별 작업 시간을 정하고 업무 담당과 일정을 협의합니다.</td></tr>
+<tr><td>IP 유지</td><td>VMware Tools를 설치하지 않으므로 IP 자동 유지 기능이 동작하지 않을 수 있습니다.</td><td>VM별 IP를 사전에 기록하고, 이관 후 게스트 안에서 확인·설정합니다.</td></tr>
+<tr><td>원복 불가 단계</td><td>Worker 전환은 원복이 불가하며, Worker2 전환 후에는 원본으로 복귀할 수 없습니다.</td><td>단계 진입 조건(02장)을 모두 충족한 경우에만 진행하고, 원본 VM은 Worker2 전환 전까지 보존합니다.</td></tr>
+<tr><td>스토리지 경로</td><td>FC 경로가 이중화되지 않으면 경로 장애 시 VM 디스크 접근이 끊깁니다.</td><td>Worker 편입 후 경로 수와 상태를 스토리지 엔지니어와 확인하고, 이중화가 확인되지 않으면 이관을 시작하지 않습니다.</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="confirm"><h2>06. 확정 필요 사항</h2>
+<div class="tablewrap"><table><thead><tr><th>구분</th><th>확인 내용</th><th>필요 시점</th></tr></thead><tbody>
+<tr><td>로드밸런서</td><td>Bastion 로드밸런서 사용 또는 별도 장비 사용</td><td>Bastion 구축 전</td></tr>
+<tr><td>DNS 정책</td><td>DNS 질의 허용 대역, 외부 이름 해석 필요 여부</td><td>Bastion 구축 전</td></tr>
+<tr><td>인증서</td><td>미러 레지스트리 인증서(자체 발급 / 고객사 PKI)</td><td>Bastion 구축 전</td></tr>
+<tr><td>VDDK</td><td>VMware VDDK 파일 확보와 라이선스</td><td>Bastion 구축 시</td></tr>
+<tr><td>스토리지</td><td>StorageClass, RWX 지원, multipath 설정 방식</td><td>Worker1 편입 전</td></tr>
+<tr><td>스위치</td><td>LACP 설정 값 일치, 서비스망 VLAN 130 trunk</td><td>Worker1 편입 전</td></tr>
+<tr><td>네임스페이스</td><td>업무 그룹별 분리 여부</td><td>클러스터 구성 전</td></tr>
+<tr><td>게스트 패키지</td><td>RHEL 8 게스트용 패키지 저장소 반입 방법(게스트 에이전트 설치용)</td><td>VM 이관 전</td></tr>
+<tr><td>VMware</td><td>MTV용 vSphere 계정, vCenter가 있는 호스트의 제거 순서</td><td>VM 이관 전</td></tr>
+<tr><td>etcd 백업</td><td>보관 기간, NFS 위치·권한, 암호화 여부, 백업 키 보관 위치</td><td>Worker2 전환 후</td></tr>
+<tr><td>업데이트 채널</td><td>OpenShift 업데이트 채널(EUS 사용 여부)</td><td>클러스터 구성 시</td></tr>
+</tbody></table></div>
+</section>
+
+<footer>작성 근거: 국데처 SGIS VMware → OpenShift 전환 및 MTV 이관 작업계획서 v1.0(작업 수행용), 국데처 SGIS OpenShift 구축설계서.<br>세부 명령과 설정 값은 작업 수행용 계획서에 정리되어 있으며, IP·호스트명 실제 값은 구축설계서 IP 기입표를 따릅니다. 수행 및 검증 결과는 작업 결과서에 기록합니다.</footer>
+</main></body></html>
