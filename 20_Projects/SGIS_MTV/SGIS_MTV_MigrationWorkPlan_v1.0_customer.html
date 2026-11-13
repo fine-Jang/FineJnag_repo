@@ -378,8 +378,8 @@ td.day.off{background:repeating-linear-gradient(45deg,#eef1f5,#eef1f5 4px,#e2e7e
 <header><div class="eyebrow">SGIS INFRASTRUCTURE / MIGRATION WORK PLAN</div><h1>국가데이터처 SGIS 오픈플랫폼<br>VMware → OpenShift 전환 및 MTV 이관 작업계획서</h1><p>Bastion 구축 → 클러스터 설치 → Worker1 전환 → 클러스터 구성 → VM 이관 → Worker2 전환</p><p>고객 제출용 요약본 · 수정일 2026.11.13 · 외부망 먼저 수행 후 내부망 적용</p></header>
 
 <section id="overview"><h2>01. 작업 개요</h2>
-<p>본 작업은 국가데이터처 SGIS 오픈플랫폼의 VMware 가상머신을 OpenShift Virtualization으로 이관하는 작업입니다. 망별로 Bastion과 Master KVM 서버를 구축하여 OpenShift 클러스터를 설치하고, 비어 있는 하이퍼바이저를 Worker1로 전환한 뒤 Migration Toolkit for Virtualization(MTV)으로 VM을 이관합니다. 이관과 업무 확인이 끝나면 원본 하이퍼바이저를 Worker2로 전환합니다.</p>
-<p>외부망을 먼저 수행하고, 외부망에서 검증한 절차와 소요 시간을 내부망에 적용합니다.</p>
+<p>국가데이터처 SGIS 오픈플랫폼의 VMware 가상머신을 OpenShift Virtualization으로 이관하는 작업. 망별 Bastion·Master KVM 서버 구축 후 OpenShift 클러스터 설치, 비어 있는 하이퍼바이저의 Worker1 전환, Migration Toolkit for Virtualization(MTV)을 이용한 VM 이관 순서로 진행. 이관과 업무 확인 완료 후 원본 하이퍼바이저를 Worker2로 전환.</p>
+<p>외부망 먼저 수행, 외부망에서 검증한 절차와 소요 시간을 내부망에 적용.</p>
 
 <div class="cards">
 <div class="card">OpenShift 클러스터<b>2개</b>외부망 1 / 내부망 1 · 망별 독립</div>
@@ -412,23 +412,23 @@ td.day.off{background:repeating-linear-gradient(45deg,#eef1f5,#eef1f5 4px,#e2e7e
 
 <div class="stop"><b>주의할 점</b>
 <ul style="margin:8px 0 0;padding-left:20px">
-<li><b>Worker 전환은 원복이 불가합니다.</b> 하이퍼바이저에 OpenShift 노드 OS(RHCOS)를 설치하면 ESXi와 기존 설정이 삭제됩니다. 전환 전 확인 항목을 모두 충족한 경우에만 진행합니다.</li>
-<li><b>Worker2 전환 이후에는 원본 VM으로 복귀할 수 없습니다.</b> 원본 하이퍼바이저를 전환하면 VMware 환경과 vCenter가 함께 사라집니다. 모든 VM의 이관 후 확인과 업무 담당의 원본 불필요 확인이 끝난 뒤에 진행합니다.</li>
-<li><b>원본 VM은 끈 상태로 보존합니다.</b> 이관이 끝난 원본 VM은 Worker2 전환 전까지 삭제하지 않으며, 문제가 생기면 원본 VM을 다시 기동하여 서비스를 복구합니다.</li>
-<li><b>DNS VM은 모든 VM 이관이 끝날 때까지 유지합니다.</b> MTV는 vCenter·ESXi에 이름으로 접속하므로, DNS VM을 먼저 끄면 이관이 중단될 수 있습니다.</li>
+<li><b>Worker 전환은 원복 불가.</b> 하이퍼바이저에 OpenShift 노드 OS(RHCOS)를 설치하면 ESXi와 기존 설정 삭제. 전환 전 확인 항목을 모두 충족한 경우에만 진행.</li>
+<li><b>Worker2 전환 이후 원본 VM으로 복귀 불가.</b> 원본 하이퍼바이저 전환 시 VMware 환경과 vCenter가 함께 사라짐. 모든 VM의 이관 후 확인과 업무 담당의 원본 불필요 확인 완료 후 진행.</li>
+<li><b>원본 VM은 끈 상태로 보존.</b> 이관이 끝난 원본 VM은 Worker2 전환 전까지 삭제하지 않고, 문제 발생 시 원본 VM 재기동으로 서비스 복구.</li>
+<li><b>DNS VM은 모든 VM 이관 완료까지 유지.</b> MTV가 vCenter·ESXi에 이름으로 접속하므로, DNS VM을 먼저 끄면 이관 중단 가능.</li>
 </ul></div>
 </section>
 
 <section id="steps"><h2>02. 단계별 작업 내용</h2>
 <div class="tablewrap"><table><thead><tr><th>단계</th><th>작업 내용</th><th>완료 기준</th><th>협조</th></tr></thead><tbody>
-<tr><td>① Bastion 구축</td><td>재활용 TNS-2100에 RHEL 9.8을 설치하고 관리망(2포트)과 백업망(nas, 2포트)을 구성합니다. DNS, 로드밸런서, 시간 동기화(NTP), 설치 파일 배포용 HTTP 서버, 미러 레지스트리를 구축하고 반입한 설치 이미지와 VDDK 이미지를 적재합니다. vCenter·ESXi 이름도 Bastion DNS에 등록합니다.</td><td>DNS 정·역방향 조회 정상, 미러 레지스트리 접속 정상, 로드밸런서 기동</td><td>NTP 장비 정보, 방화벽 정책</td></tr>
-<tr><td>② 클러스터 설치</td><td>Master KVM 서버에 RHEL 9.8과 KVM을 구성하고 Master VM 3대와 설치용 임시 VM(bootstrap)을 만듭니다. 폐쇄망 UPI 방식으로 OpenShift를 설치하며, Master에는 업무 VM이 올라가지 않도록 설치 전에 설정합니다. 설치 후 임시 VM은 삭제합니다.</td><td>Master 3대 Ready, 미러 이미지 설정 적용</td><td>—</td></tr>
-<tr><td>③ Worker1 전환</td><td>DNS VM을 원본 하이퍼바이저로 옮겨 대상 하이퍼바이저를 비웁니다. 설정을 백업하고 vCenter에서 제거한 뒤 LUN 매핑을 해제합니다. 노드 네트워크(관리·백업·서비스 bond)를 구성하고 OpenShift 노드로 설치하여 클러스터에 편입합니다. 기존 하이퍼바이저 IP를 재사용합니다.</td><td>Worker1 Ready, bond 이중화 시험 완료, 스토리지 경로 이중화 확인, 설치 완료</td><td>VMware · 스토리지 · 네트워크</td></tr>
-<tr><td>④ 클러스터 구성</td><td>OpenShift Virtualization, MTV, NMState를 설치합니다. VM이 연결될 서비스망(VLAN 130)·백업망 브리지와 네트워크 정의를 만들고, 스토리지 엔지니어가 구성한 StorageClass를 확인합니다. 업데이트 서비스(OSUS)를 구성합니다.</td><td>Operator 정상, 네트워크 정의 생성, 테스트 볼륨 할당 정상</td><td>스토리지(CSI·StorageClass)</td></tr>
-<tr><td>⑤ VM 이관</td><td>VM별 점검 후 MTV로 VM을 1대씩 이관합니다. 첫 이관은 1대로 수행하여 결과를 확인한 뒤 나머지를 진행합니다. 03장의 절차를 따릅니다.</td><td>VM 기동, IP·MAC 유지, 업무 확인</td><td>VMware(계정), 업무 담당</td></tr>
-<tr><td>⑥ Worker2 전환</td><td>전환 전 확인 후 원본 하이퍼바이저를 vCenter에서 제거하고 Worker2로 전환합니다. Worker 2대 간 Live Migration을 시험하고 etcd 일일 백업을 설정합니다.</td><td>Worker2 Ready, Live Migration 성공, 첫 백업 생성</td><td>VMware · 스토리지 · 업무 담당</td></tr>
+<tr><td>① Bastion 구축</td><td>재활용 TNS-2100에 RHEL 9.8 설치, 관리망(2포트)·백업망(nas, 2포트) 구성. DNS, 로드밸런서, 시간 동기화(NTP), 설치 파일 배포용 HTTP 서버, 미러 레지스트리 구축 후 반입한 설치 이미지와 VDDK 이미지 적재. vCenter·ESXi 이름도 Bastion DNS에 등록.</td><td>DNS 정·역방향 조회 정상, 미러 레지스트리 접속 정상, 로드밸런서 기동</td><td>NTP 장비 정보, 방화벽 정책</td></tr>
+<tr><td>② 클러스터 설치</td><td>Master KVM 서버에 RHEL 9.8·KVM 구성, Master VM 3대와 설치용 임시 VM(bootstrap) 생성. 폐쇄망 UPI 방식으로 OpenShift 설치, Master에 업무 VM이 올라가지 않도록 설치 전 설정. 설치 후 임시 VM 삭제.</td><td>Master 3대 Ready, 미러 이미지 설정 적용</td><td>—</td></tr>
+<tr><td>③ Worker1 전환</td><td>DNS VM을 원본 하이퍼바이저로 옮겨 대상 하이퍼바이저 비움. 설정 백업, vCenter 제거, LUN 매핑 해제 후 노드 네트워크(관리·백업·서비스 bond) 구성, OpenShift 노드로 설치·편입. 기존 하이퍼바이저 IP 재사용.</td><td>Worker1 Ready, bond 이중화 시험 완료, 스토리지 경로 이중화 확인, 설치 완료</td><td>VMware · 스토리지 · 네트워크</td></tr>
+<tr><td>④ 클러스터 구성</td><td>OpenShift Virtualization, MTV, NMState 설치. VM이 연결될 서비스망(VLAN 130)·백업망 브리지와 네트워크 정의 생성, 스토리지 엔지니어가 구성한 StorageClass 확인. 업데이트 서비스(OSUS) 구성.</td><td>Operator 정상, 네트워크 정의 생성, 테스트 볼륨 할당 정상</td><td>스토리지(CSI·StorageClass)</td></tr>
+<tr><td>⑤ VM 이관</td><td>VM별 점검 후 MTV로 VM 1대씩 이관. 첫 이관은 1대로 수행, 결과 확인 후 나머지 진행. 세부 절차는 03장.</td><td>VM 기동, IP·MAC 유지, 업무 확인</td><td>VMware(계정), 업무 담당</td></tr>
+<tr><td>⑥ Worker2 전환</td><td>전환 전 확인 후 원본 하이퍼바이저를 vCenter에서 제거, Worker2로 전환. Worker 2대 간 Live Migration 시험, etcd 일일 백업 설정.</td><td>Worker2 Ready, Live Migration 성공, 첫 백업 생성</td><td>VMware · 스토리지 · 업무 담당</td></tr>
 </tbody></table></div>
-<p>내부망은 HV#03을 Master KVM 서버로, 비어 있는 HV#01을 Worker1로, 업무 VM이 있는 HV#02를 Worker2로 전환하는 점만 다르며 같은 순서로 진행합니다. 내부망 HV#03의 DNS VM은 Master 구성 전에 HV#02로 옮깁니다.</p>
+<p>내부망은 HV#03 → Master KVM 서버, 비어 있는 HV#01 → Worker1, 업무 VM이 있는 HV#02 → Worker2 전환만 다르고 순서는 동일. 내부망 HV#03의 DNS VM은 Master 구성 전 HV#02로 이동.</p>
 
 <h3>단계 진입 조건</h3>
 <div class="tablewrap"><table><thead><tr><th>단계</th><th>진행 전 확인</th></tr></thead><tbody>
@@ -439,36 +439,36 @@ td.day.off{background:repeating-linear-gradient(45deg,#eef1f5,#eef1f5 4px,#e2e7e
 </section>
 
 <section id="migrate"><h2>03. VM 이관</h2>
-<p>이관은 Cold 방식으로, 원본 VM을 종료한 뒤 디스크를 네트워크(VDDK)로 복사하여 OpenShift VM으로 변환합니다. VM마다 이관 시간 동안 서비스가 중단되며 VM은 1대씩 이관합니다. 망마다 vCenter가 따로 있어 이관 연결(Provider)도 망별로 구성합니다.</p>
+<p>Cold 방식 이관. 원본 VM 종료 후 디스크를 네트워크(VDDK)로 복사하여 OpenShift VM으로 변환. VM마다 이관 시간 동안 서비스 중단, VM 1대씩 이관. 망마다 vCenter가 별도이므로 이관 연결(Provider)도 망별 구성.</p>
 
 <h3>이관 전 VM 점검</h3>
 <div class="tablewrap"><table><thead><tr><th>점검 항목</th><th>확인 내용</th></tr></thead><tbody>
 <tr><td>OS · 부팅</td><td>OS 종류·버전(RHEL 8.9, Windows Server 2022), BIOS/EFI, Secure Boot 사용 여부</td></tr>
 <tr><td>네트워크 · IP</td><td>어댑터별 포트그룹(서비스 130, nasbak 701·710)과 IP/prefix, 게이트웨이, DNS, 정적 경로 기록</td></tr>
 <tr><td>디스크</td><td>디스크 개수·크기, 공유 디스크·RDM·vTPM·암호화 여부, 게스트 안 NFS·iSCSI 직접 마운트 여부</td></tr>
-<tr><td>스냅샷</td><td>이관 전 스냅샷 정리. 이관 시작 후에는 스냅샷을 만들지 않습니다.</td></tr>
+<tr><td>스냅샷</td><td>이관 전 스냅샷 정리, 이관 시작 후 스냅샷 생성 금지</td></tr>
 <tr><td>Windows</td><td>Fast Startup 해제, 동적 디스크 여부, DHCP Client 서비스 상태</td></tr>
 <tr><td>에이전트</td><td>백신 등 에이전트 설치 여부</td></tr>
 </tbody></table></div>
 
 <h3>이관 절차</h3>
 <div class="tablewrap"><table><thead><tr><th>순서</th><th>작업</th></tr></thead><tbody>
-<tr><td>1. 연결 구성</td><td>vSphere 연결(Provider)을 만들고 인벤토리에 VM이 보이는지 확인합니다.</td></tr>
-<tr><td>2. 매핑</td><td>원본 포트그룹을 대상 네트워크에 연결합니다(서비스 130 → 서비스망, nasbak 701·710 → 백업망). 원본 데이터스토어를 대상 스토리지에 연결합니다.</td></tr>
-<tr><td>3. 이관 계획</td><td>VM 1대 단위로 이관 계획을 만들고 사전 검증 결과에 경고가 없는지 확인합니다.</td></tr>
-<tr><td>4. 원본 종료</td><td>게스트 안에서 원본 VM을 정상 종료합니다(VMware Tools를 설치하지 않으므로 직접 종료).</td></tr>
-<tr><td>5. 이관 실행</td><td>이관을 실행하고 진행 상태를 확인합니다. 대상 VM은 꺼진 상태로 만들어 원본과 동시에 켜지지 않게 합니다.</td></tr>
-<tr><td>6. 확인 후 기동</td><td>대상 VM을 기동하여 아래 이관 후 확인을 수행합니다.</td></tr>
+<tr><td>1. 연결 구성</td><td>vSphere 연결(Provider) 생성, 인벤토리의 VM 표시 확인</td></tr>
+<tr><td>2. 매핑</td><td>원본 포트그룹을 대상 네트워크에 연결(서비스 130 → 서비스망, nasbak 701·710 → 백업망), 원본 데이터스토어를 대상 스토리지에 연결</td></tr>
+<tr><td>3. 이관 계획</td><td>VM 1대 단위로 이관 계획 생성, 사전 검증 결과의 경고 여부 확인</td></tr>
+<tr><td>4. 원본 종료</td><td>게스트 안에서 원본 VM 정상 종료(VMware Tools 미설치로 직접 종료)</td></tr>
+<tr><td>5. 이관 실행</td><td>이관 실행 및 진행 상태 확인. 대상 VM은 꺼진 상태로 생성하여 원본과 동시 기동 방지</td></tr>
+<tr><td>6. 확인 후 기동</td><td>대상 VM 기동 후 아래 이관 후 확인 수행</td></tr>
 </tbody></table></div>
 
 <h3>이관 후 확인</h3>
 <ul class="chk">
-<li>VM이 Worker 노드에서 정상 기동합니다.</li>
-<li>서비스망 IP와 MAC이 이관 전과 같습니다. IP가 적용되지 않으면 사전 기록 값으로 게스트 안에서 설정합니다.</li>
-<li>기본 경로가 중복되지 않았습니다.</li>
-<li>게스트 에이전트가 동작합니다.</li>
-<li>업무 담당이 서비스 동작을 확인했습니다.</li>
-<li>원본 VM은 전원을 끈 상태로 보존합니다.</li>
+<li>Worker 노드에서 VM 정상 기동</li>
+<li>서비스망 IP·MAC이 이관 전과 동일(IP 미적용 시 사전 기록 값으로 게스트 안에서 설정)</li>
+<li>기본 경로 중복 없음</li>
+<li>게스트 에이전트 동작</li>
+<li>업무 담당의 서비스 동작 확인</li>
+<li>원본 VM은 전원을 끈 상태로 보존</li>
 </ul>
 </section>
 
@@ -493,10 +493,10 @@ td.day.off{background:repeating-linear-gradient(45deg,#eef1f5,#eef1f5 4px,#e2e7e
 
 <section id="risk"><h2>05. 주요 위험 및 대응</h2>
 <div class="tablewrap risk"><table><thead><tr><th>위험</th><th>내용</th><th>대응</th></tr></thead><tbody>
-<tr><td>서비스 중단</td><td>Cold 이관이므로 VM마다 이관 시간 동안 서비스가 중단됩니다.</td><td>첫 VM으로 소요 시간을 측정하여 VM별 작업 시간을 정하고 업무 담당과 일정을 협의합니다.</td></tr>
-<tr><td>IP 유지</td><td>VMware Tools를 설치하지 않으므로 IP 자동 유지 기능이 동작하지 않을 수 있습니다.</td><td>VM별 IP를 사전에 기록하고, 이관 후 게스트 안에서 확인·설정합니다.</td></tr>
-<tr><td>원복 불가 단계</td><td>Worker 전환은 원복이 불가하며, Worker2 전환 후에는 원본으로 복귀할 수 없습니다.</td><td>단계 진입 조건(02장)을 모두 충족한 경우에만 진행하고, 원본 VM은 Worker2 전환 전까지 보존합니다.</td></tr>
-<tr><td>스토리지 경로</td><td>FC 경로가 이중화되지 않으면 경로 장애 시 VM 디스크 접근이 끊깁니다.</td><td>Worker 편입 후 경로 수와 상태를 스토리지 엔지니어와 확인하고, 이중화가 확인되지 않으면 이관을 시작하지 않습니다.</td></tr>
+<tr><td>서비스 중단</td><td>Cold 이관으로 VM마다 이관 시간 동안 서비스 중단</td><td>첫 VM으로 소요 시간 측정, VM별 작업 시간 산정 후 업무 담당과 일정 협의</td></tr>
+<tr><td>IP 유지</td><td>VMware Tools 미설치로 IP 자동 유지 기능 미동작 가능</td><td>VM별 IP 사전 기록, 이관 후 게스트 안에서 확인·설정</td></tr>
+<tr><td>원복 불가 단계</td><td>Worker 전환은 원복 불가, Worker2 전환 후 원본 복귀 불가</td><td>단계 진입 조건(02장) 모두 충족 시에만 진행, 원본 VM은 Worker2 전환 전까지 보존</td></tr>
+<tr><td>스토리지 경로</td><td>FC 경로 미이중화 시 경로 장애로 VM 디스크 접근 단절</td><td>Worker 편입 후 경로 수·상태를 스토리지 엔지니어와 확인, 이중화 미확인 시 이관 보류</td></tr>
 </tbody></table></div>
 </section>
 
@@ -529,7 +529,7 @@ td.day.off{background:repeating-linear-gradient(45deg,#eef1f5,#eef1f5 4px,#e2e7e
 <tr id="wk7"><th class="wk"><b>7주차</b><span>12/28 ~ 1/3</span><div class="memo wmemo" contenteditable="true" data-key="week-wk7" data-ph="주간 목표"></div></th><td class="day"><div class="dn">28</div><div class="memo" contenteditable="true" data-key="2026-12-28"></div></td><td class="day"><div class="dn">29</div><div class="memo" contenteditable="true" data-key="2026-12-29"></div></td><td class="day"><div class="dn">30</div><div class="memo" contenteditable="true" data-key="2026-12-30"></div></td><td class="day"><div class="dn">31</div><div class="memo" contenteditable="true" data-key="2026-12-31"></div></td><td class="day off"><div class="dn">1/1</div></td><td class="day off"><div class="dn">1/2</div></td><td class="day off"><div class="dn">1/3</div></td></tr>
 </tbody></table></div>
 </section>
-<footer>작성 근거: 국데처 SGIS VMware → OpenShift 전환 및 MTV 이관 작업계획서 v1.0(작업 수행용), 국데처 SGIS OpenShift 구축설계서.<br>세부 명령과 설정 값은 작업 수행용 계획서에 정리되어 있으며, IP·호스트명 실제 값은 구축설계서 IP 기입표를 따릅니다. 수행 및 검증 결과는 작업 결과서에 기록합니다.</footer></div></div>
+<footer>작성 근거: 국데처 SGIS VMware → OpenShift 전환 및 MTV 이관 작업계획서 v1.0(작업 수행용), 국데처 SGIS OpenShift 구축설계서.<br>세부 명령과 설정 값은 작업 수행용 계획서 기준, IP·호스트명 실제 값은 구축설계서 IP 기입표 기준. 수행 및 검증 결과는 작업 결과서에 기록.</footer></div></div>
 
 </main>
 <script>
