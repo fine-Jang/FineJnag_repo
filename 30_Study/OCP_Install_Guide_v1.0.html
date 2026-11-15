@@ -1,0 +1,1346 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OpenShift 4.22 UPI 설치 가이드 v1.0</title>
+<style>
+:root{--ink:#1f2a3a;--muted:#5b6b80;--line:#d5dce6;--paper:#eef1f5;--white:#fff;--navy:#1e3a5f;--blue:#2f4f7a;--soft:#eaf0f7;--warn:#fff4dc;--red:#fdecea;--okbg:#f3f8f3;--ok:#2e7d32}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.7 "Segoe UI","Malgun Gothic",sans-serif}main{max-width:1180px;margin:auto;padding:26px}header,section{background:var(--white);padding:24px 30px;margin:18px 0;border-top:4px solid var(--blue)}header{border-top-width:8px}section.apx{border-top-color:#6b5b95}h1,h2{color:var(--navy)}h1{font-size:30px;margin:4px 0}h2{font-size:22px;border-bottom:1px solid var(--line);padding-bottom:8px}h3{font-size:17px;margin:26px 0 6px;border-left:4px solid var(--blue);padding-left:10px}h4{font-size:15px;margin:16px 0 4px;color:var(--blue)}nav{display:flex;flex-wrap:wrap;gap:6px 18px;padding:14px 4px;border-bottom:1px solid var(--line)}a{color:var(--blue)}table{width:100%;border-collapse:collapse;margin:10px 0;font-size:14px}th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}th{background:var(--soft);color:var(--navy)}pre{overflow:auto;background:#16202e;color:#e6edf5;padding:15px;border-radius:5px;font:13px/1.55 Consolas,monospace;white-space:pre-wrap;word-break:break-word}pre.out{background:var(--okbg);color:#1f2a3a;border-left:4px solid var(--ok);border-radius:0 5px 5px 0}.outl{display:inline-block;margin:6px 0 -6px;font-size:12px;font-weight:700;color:var(--ok);letter-spacing:.02em}code{font-family:Consolas,monospace;background:var(--soft);padding:1px 4px}.note,.warn,.danger{padding:11px 15px;margin:12px 0;border-left:4px solid var(--blue);background:var(--soft)}.warn{background:var(--warn);border-color:#b7791f}.danger{background:var(--red);border-color:#b42318}.small{color:var(--muted);font-size:13px}li{margin:4px 0}details{margin:10px 0;border:1px solid var(--line);padding:8px 14px;background:#f8fafc}summary{cursor:pointer;font-weight:700;color:var(--blue)}.c{color:#8fa3bb}.flow{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}.flow span{background:var(--soft);border:1px solid var(--line);border-top:3px solid var(--blue);padding:6px 10px;font-size:13.5px;font-weight:600}@media(max-width:700px){main{padding:10px}header,section{padding:18px}table{display:block;overflow:auto}}@media print{body{background:#fff}nav{display:none}details{display:block}details>*{display:block}}
+</style></head><body><main>
+
+<header><span>실습 문서 · v1.0 · 2026-11-15</span><h1>OpenShift 4.22 폐쇄망 UPI 설치 가이드 (KVM)</h1>
+<p>KVM 호스트 위 VM으로 OCP 4.22.22 UPI 설치부터 VM 네트워크(NNCP · NAD), MTV를 이용한 vCenter VM 이관까지 실제 수행 기록 기반 절차. 스토리지(TrueNAS + democratic-csi, iSCSI 동적 할당)는 별첨 A로 분리.</p>
+<p class="small">대상 버전 <b>4.22.22</b> (eus-4.22) · 도메인 <code>ocp.jhw.local</code> · 실행 환경 aon-kvm(192.168.0.92). 계정 · 암호 · 토큰 · API 키는 <code>&lt;...&gt;</code> 자리표시자. <span style="color:var(--ok);font-weight:700">초록 박스</span>는 이번 실습에서 실제로 나온 결과 예시.</p></header>
+
+<nav><a href="#env">00 환경</a><a href="#bundle">01 반입 번들</a><a href="#bastion">02 Bastion 기본</a><a href="#dns">03 DNS · HAProxy</a><a href="#mirror">04 Quay · 미러</a><a href="#config">05 install-config · ignition</a><a href="#nodes">06 노드 설치</a><a href="#post">07 설치 후 설정 · Operator</a><a href="#vmnet">08 VM 네트워크</a><a href="#mtv">09 MTV 이관</a><a href="#csi">별첨 A CSI 스토리지</a><a href="#nsh">별첨 B 노드 설치 스크립트</a><a href="#trouble">부록 C 문제 해결</a></nav>
+
+<!-- ================================================================== 00 -->
+<section id="env"><h2>00. 환경 및 IP 할당</h2>
+<h3>0-1. KVM 호스트 · libvirt 네트워크</h3>
+<table><tr><th>항목</th><th>값</th></tr>
+<tr><td>KVM 호스트</td><td>aon-kvm <code>192.168.0.92</code> · 64 core · 250GB RAM · VM 디스크 <code>/data02</code> (1.7TB 여유)</td></tr>
+<tr><td>관리망</td><td><code>ocp.test.local_10.182.10.2~11.254</code> · <code>10.182.10.1/23</code> · <b>NAT 모드</b></td></tr>
+<tr><td>SVC망</td><td><code>svc-net</code> · <code>192.168.30.1/24</code> · DHCP .100–.199</td></tr>
+<tr><td>NAS망</td><td><code>nas-net</code> · <code>192.168.40.1/24</code> · DHCP .100–.199</td></tr>
+<tr><td>사내망</td><td><code>192.168.0.0/22</code> · Bastion · 관리 PC 접속 경로 (macvtap <code>eno0</code>)</td></tr></table>
+<div class="warn">관리망이 libvirt <b>NAT 모드</b>라 노드 · Bastion에서 KVM 호스트를 거쳐 사내망 · 인터넷 접근 가능 상태. 완전 폐쇄망과 다른 점이며, MTV 원본(vCenter) 접근도 이 경로 사용. 운영 폐쇄망에서는 인터넷 경로 없음 전제.</div>
+
+<h3>0-2. IP · 호스트명</h3>
+<table><tr><th>장비</th><th>IP</th><th>호스트명 · 용도</th></tr>
+<tr><td>관리망 게이트웨이</td><td>10.182.10.1</td><td>libvirt NAT 게이트웨이</td></tr>
+<tr><td>Bastion</td><td>10.182.10.10/24 · 192.168.2.18/22</td><td><code>bastion.ocp.jhw.local</code> · DNS · NTP · HAProxy · Quay · Ignition HTTP. 사내망 NIC는 관리 PC 접속용(게이트웨이 없음)</td></tr>
+<tr><td>Bootstrap</td><td>10.182.10.11</td><td><code>bootstrap.ocp.jhw.local</code> · 설치 중에만 사용</td></tr>
+<tr><td>Master 01–03</td><td>10.182.10.12–14</td><td><code>master01–03.ocp.jhw.local</code></td></tr>
+<tr><td>Worker 01–02</td><td>10.182.10.15–16</td><td><code>worker01–02.ocp.jhw.local</code></td></tr>
+<tr><td>TrueNAS (별첨 A)</td><td>10.182.10.20</td><td><code>truenas.ocp.jhw.local</code> · iSCSI 스토리지</td></tr>
+<tr><td>API · API-int · *.apps · Quay</td><td>10.182.10.10</td><td>Bastion 자체 IP(HAProxy). 별도 VIP 없음</td></tr>
+<tr><td>vCenter (MTV 원본)</td><td>192.168.1.221</td><td><code>vcsa.localhost.test</code> · vCenter 8.0</td></tr>
+<tr><td>ESXi (MTV 원본)</td><td>192.168.1.220</td><td>vCenter에 IP로 등록</td></tr></table>
+
+<h3>0-3. VM 사양</h3>
+<table><tr><th>VM</th><th>vCPU</th><th>메모리</th><th>디스크</th><th>NIC</th><th>비고</th></tr>
+<tr><td>bastion</td><td>8</td><td>8GiB</td><td>100G + 500G(<code>/data</code>)</td><td>관리망 virtio + macvtap eno0</td><td>RHEL 9.6, q35</td></tr>
+<tr><td>bootstrap</td><td>4</td><td>16GiB</td><td>120G (data02)</td><td>관리망 e1000 ×2</td><td>설치 후 종료</td></tr>
+<tr><td>master01–03</td><td>4</td><td>16GiB</td><td>120G (data02)</td><td>관리망 e1000 ×2 (bond0)</td><td>i440fx, host-passthrough</td></tr>
+<tr><td>worker01–02</td><td>8</td><td>16GiB</td><td>120G (data02)</td><td>관리망 ×2 · svc-net ×2 · nas-net ×2 (e1000 ×6)</td><td>i440fx, host-passthrough (중첩 가상화)</td></tr>
+<tr><td>truenas</td><td>2</td><td>8GiB</td><td>32G + 500G (<code>/data02/JHW_ST</code>)</td><td>관리망 virtio</td><td>별첨 A</td></tr></table>
+<p class="small">워커 메모리 16GiB 기준 VM에 쓸 수 있는 메모리는 워커당 약 9–10GiB(인프라 파드 · OpenShift Virtualization 사용분 제외). 테스트 VM 10대 이하, VM당 1–2GiB 기준.</p>
+
+<h3>0-4. 클러스터 값</h3>
+<table><tr><th>항목</th><th>값</th></tr>
+<tr><td>cluster · base domain</td><td><code>ocp</code> · <code>jhw.local</code> (API <code>https://api.ocp.jhw.local:6443</code>)</td></tr>
+<tr><td>OCP 버전</td><td>4.22.22 (eus-4.22) · Kubernetes v1.35.9 · RHCOS <code>9.8.20261026-0</code></td></tr>
+<tr><td>네트워크</td><td>OVNKubernetes · machineNetwork 10.182.10.0/24 · clusterNetwork 10.128.0.0/14 (hostPrefix 23) · serviceNetwork 172.30.0.0/16</td></tr>
+<tr><td>미러 레지스트리</td><td><code>init-quay.ocp.jhw.local:8443</code> (Bastion · mirror-registry)</td></tr>
+<tr><td>Ignition</td><td><code>http://10.182.10.10:8080/ocp/</code></td></tr></table>
+<div class="flow"><span>01 번들 반입</span><span>02 Bastion</span><span>03 DNS · HAProxy</span><span>04 Quay · 미러</span><span>05 install-config · ignition</span><span>06 bootstrap → master → worker</span><span>07 미러 리소스 · Operator</span><span>08 NNCP · NAD</span><span>09 MTV 이관</span><span>별첨 A CSI</span></div>
+</section>
+
+<!-- ================================================================== 01 -->
+<section id="bundle"><h2>01. 반입 번들</h2>
+<p>인터넷 구간에서 mirror → disk로 만든 번들을 Bastion <code>/data/4.22.22_Bundle</code>에 반입한 상태에서 시작.</p>
+<h3>1-1. 번들 구성</h3>
+<table><tr><th>경로</th><th>내용</th></tr>
+<tr><td><code>bundle-4.22.22/bin/</code></td><td>openshift-client · openshift-install(4.22.22) · oc-mirror · mirror-registry · butane + 체크섬</td></tr>
+<tr><td><code>bundle-4.22.22/rhcos/</code></td><td><code>rhcos-9.8.20261026-0-live-iso.x86_64.iso</code></td></tr>
+<tr><td><code>bundle-4.22.22/images/</code></td><td><code>ubi-minimal.tar</code></td></tr>
+<tr><td><code>bundle-4.22.22/openvddk/</code></td><td>OpenVDDK evalkit 0.7.4 (09장 · 랩 전용)</td></tr>
+<tr><td><code>bundle-4.22.22/ocp-imageset-config.yaml</code></td><td>미러 대상 정의</td></tr>
+<tr><td><code>image/mirror_000001.tar</code> · <code>working-dir</code></td><td>oc-mirror v2 디스크 아카이브</td></tr></table>
+<details><summary>ocp-imageset-config.yaml</summary><pre>kind: ImageSetConfiguration
+apiVersion: mirror.openshift.io/v2alpha1
+mirror:
+  platform:
+    channels:
+    - name: eus-4.22
+      minVersion: 4.22.22
+      maxVersion: 4.22.22
+    graph: true
+  operators:
+  - catalog: registry.redhat.io/redhat/redhat-operator-index:v4.22
+    packages:
+    - name: kubevirt-hyperconverged
+      channels:
+      - name: stable
+    - name: kubernetes-nmstate-operator
+      channels:
+      - name: stable
+    - name: mtv-operator
+      channels:
+      - name: release-v2.12
+    - name: cincinnati-operator</pre></details>
+<h3>1-2. 도구 설치</h3><pre>cd /data/4.22.22_Bundle/bundle-4.22.22/bin
+sha256sum -c sha256sum.txt --ignore-missing
+tar xzf openshift-client-linux-amd64-rhel9-4.22.22.tar.gz -C /usr/local/bin oc kubectl
+tar xzf openshift-install-linux-4.22.22.tar.gz -C /usr/local/bin openshift-install
+tar xzf oc-mirror.rhel9.tar.gz -C /usr/local/bin &amp;&amp; chmod 755 /usr/local/bin/oc-mirror
+install -m 755 butane-amd64 /usr/local/bin/butane
+oc version --client; openshift-install version; butane --version</pre>
+<span class="outl">결과 예시</span><pre class="out">Client Version: 4.22.22
+openshift-install 4.22.22
+release image quay.io/openshift-release-dev/ocp-release@sha256:03bc1715c33a8a6de571bb9845ac07f93eebcc03a5ff6182494fcbb6dfeb49a5
+Butane 0.29.0</pre>
+</section>
+
+<!-- ================================================================== 02 -->
+<section id="bastion"><h2>02. Bastion 기본 구성</h2>
+<h3>2-1. 네트워크 · 호스트명</h3><pre>nmcli con modify enp1s0 ipv4.method manual ipv4.addresses 10.182.10.10/24 ipv4.gateway 10.182.10.1 \
+  ipv4.dns 127.0.0.1 ipv4.dns-search ocp.jhw.local ipv6.method disabled autoconnect yes
+<span class="c"># 사내망 NIC (macvtap) — 게이트웨이 없음</span>
+nmcli con add type ethernet ifname enp9s0 con-name enp9s0 ipv4.method manual ipv4.addresses 192.168.2.18/22 autoconnect yes
+nmcli con up enp1s0; nmcli con up enp9s0
+hostnamectl hostname bastion.ocp.jhw.local</pre>
+<span class="outl">결과 예시 (ip -br -4 a)</span><pre class="out">enp1s0           UP             10.182.10.10/24
+enp9s0           UP             192.168.2.18/22</pre>
+<p class="small">기본 경로는 관리망(10.182.10.1) 유지. Bastion <code>net.ipv4.ip_forward=0</code> 유지로 노드의 사내망 경유 차단.</p>
+<h3>2-2. 패키지 · 서비스</h3><pre>dnf install -y nfs-utils bind bind-utils haproxy httpd chrony podman jq skopeo
+getenforce                       <span class="c"># 실습 환경 Disabled</span>
+systemctl is-active firewalld    <span class="c"># 실습 환경 inactive</span></pre>
+<p class="small">SELinux · firewalld 사용 시 53/udp·tcp, 123/udp, 80, 443, 6443, 8080, 8443, 22623/tcp 허용 및 <code>haproxy_connect_any</code> · <code>httpd_can_network_connect</code> 설정 필요.</p>
+<h3>2-3. NTP (chrony 서버)</h3><pre>cat &gt; /etc/chrony.conf &lt;&lt;'EOF'
+local stratum 10
+allow 10.182.10.0/24
+driftfile /var/lib/chrony/drift
+makestep 1.0 3
+rtcsync
+logdir /var/log/chrony
+EOF
+systemctl enable --now chronyd; chronyc tracking | head -3</pre>
+<h3>2-4. Ignition HTTP (httpd 8080)</h3><pre>sed -i 's/^Listen 80$/Listen 8080/' /etc/httpd/conf/httpd.conf
+mkdir -p /var/www/html/ocp
+systemctl enable --now httpd</pre>
+<h3>2-5. 관리 PC hosts 파일</h3><p><code>C:\Windows\System32\drivers\etc\hosts</code> 추가 항목. 새 Route 생성 시 이름 추가.</p>
+<pre>192.168.2.18  bastion.ocp.jhw.local init-quay.ocp.jhw.local api.ocp.jhw.local
+192.168.2.18  console-openshift-console.apps.ocp.jhw.local oauth-openshift.apps.ocp.jhw.local
+192.168.2.18  downloads-openshift-console.apps.ocp.jhw.local</pre>
+</section>
+
+<!-- ================================================================== 03 -->
+<section id="dns"><h2>03. DNS · HAProxy</h2>
+<h3>3-1. named 옵션 · zone 선언</h3><pre><span class="c"># /etc/named.conf options 주요 값</span>
+listen-on port 53 { any; };
+allow-query     { any; };
+recursion yes;
+
+<span class="c"># /etc/named.rfc1912.zones 추가</span>
+zone "ocp.jhw.local" IN {
+        type master;
+        file "/var/named/ocp.jhw.local.zone";
+        allow-update { none; };
+};
+zone "10.182.10.in-addr.arpa" IN {
+        type master;
+        file "/var/named/10.182.10.in-addr.rev";
+        allow-update { none; };
+};</pre>
+<h3>3-2. 정방향 zone</h3><pre>$TTL 1D
+@   IN SOA  ns.ocp.jhw.local. root.ocp.jhw.local. ( 2026111501 1D 1H 1W 3H )
+    IN NS   ns.ocp.jhw.local.
+    IN A    10.182.10.10
+ns          IN A  10.182.10.10
+bastion     IN A  10.182.10.10
+init-quay   IN A  10.182.10.10
+api         IN A  10.182.10.10
+api-int     IN A  10.182.10.10
+*.apps      IN A  10.182.10.10
+bootstrap   IN A  10.182.10.11
+master01    IN A  10.182.10.12
+master02    IN A  10.182.10.13
+master03    IN A  10.182.10.14
+worker01    IN A  10.182.10.15
+worker02    IN A  10.182.10.16
+truenas     IN A  10.182.10.20</pre>
+<h3>3-3. 역방향 zone</h3><pre>$TTL 1D
+@   IN SOA  ns.ocp.jhw.local. root.ocp.jhw.local. ( 2026111501 1D 1H 1W 3H )
+    IN NS   ns.ocp.jhw.local.
+10  IN PTR  bastion.ocp.jhw.local.
+10  IN PTR  api.ocp.jhw.local.
+10  IN PTR  api-int.ocp.jhw.local.
+11  IN PTR  bootstrap.ocp.jhw.local.
+12  IN PTR  master01.ocp.jhw.local.
+13  IN PTR  master02.ocp.jhw.local.
+14  IN PTR  master03.ocp.jhw.local.
+15  IN PTR  worker01.ocp.jhw.local.
+16  IN PTR  worker02.ocp.jhw.local.
+20  IN PTR  truenas.ocp.jhw.local.</pre>
+<pre>named-checkconf
+named-checkzone ocp.jhw.local /var/named/ocp.jhw.local.zone
+named-checkzone 10.182.10.in-addr.arpa /var/named/10.182.10.in-addr.rev
+systemctl enable --now named      <span class="c"># 레코드 변경 시: serial 증가 후 systemctl reload named</span>
+dig +short api-int.ocp.jhw.local @10.182.10.10
+dig +short test.apps.ocp.jhw.local @10.182.10.10
+dig +short -x 10.182.10.12 @10.182.10.10</pre>
+<span class="outl">결과 예시</span><pre class="out">zone ocp.jhw.local/IN: loaded serial 2026111501
+OK
+10.182.10.10
+10.182.10.10
+master01.ocp.jhw.local.</pre>
+<div class="note">Bastion named는 외부 이름 해석 불가(외부 루트 DNS 질의 실패 → SERVFAIL). 외부 도메인(예: vCenter FQDN)은 09장처럼 zone을 따로 만들어 등록.</div>
+
+<h3>3-4. HAProxy</h3>
+<details open><summary>/etc/haproxy/haproxy.cfg</summary><pre>global
+    log         127.0.0.1 local2
+    maxconn     4000
+    daemon
+defaults
+    mode                    tcp
+    log                     global
+    option                  dontlognull
+    timeout connect         10s
+    timeout client          1m
+    timeout server          1m
+frontend api
+    bind *:6443
+    default_backend api
+backend api
+    balance source
+    server bootstrap 10.182.10.11:6443 check     <span class="c"># 06장 bootstrap 완료 후 주석 처리</span>
+    server master01  10.182.10.12:6443 check
+    server master02  10.182.10.13:6443 check
+    server master03  10.182.10.14:6443 check
+frontend machine-config
+    bind *:22623
+    default_backend machine-config
+backend machine-config
+    balance source
+    server bootstrap 10.182.10.11:22623 check    <span class="c"># 06장 bootstrap 완료 후 주석 처리</span>
+    server master01  10.182.10.12:22623 check
+    server master02  10.182.10.13:22623 check
+    server master03  10.182.10.14:22623 check
+frontend ingress-http
+    bind *:80
+    default_backend ingress-http
+backend ingress-http
+    balance source
+    server worker01 10.182.10.15:80 check
+    server worker02 10.182.10.16:80 check
+frontend ingress-https
+    bind *:443
+    default_backend ingress-https
+backend ingress-https
+    balance source
+    server worker01 10.182.10.15:443 check
+    server worker02 10.182.10.16:443 check</pre></details>
+<pre>haproxy -c -f /etc/haproxy/haproxy.cfg &amp;&amp; systemctl enable --now haproxy</pre>
+<span class="outl">결과 예시</span><pre class="out">Configuration file is valid</pre>
+<p class="small">ingress는 <code>mastersSchedulable: false</code> 기준이라 worker만 대상.</p>
+</section>
+
+<!-- ================================================================== 04 -->
+<section id="mirror"><h2>04. Quay 설치 · 미러 올리기</h2>
+<h3>4-1. mirror-registry 설치</h3><pre>mkdir -p /data/mirror-registry /data/quay &amp;&amp; cd /data/mirror-registry
+tar xzf /data/4.22.22_Bundle/bundle-4.22.22/bin/mirror-registry-amd64.tar.gz
+./mirror-registry install \
+  --quayHostname init-quay.ocp.jhw.local:8443 \
+  --quayRoot /data/quay \
+  --quayStorage /data/quay-storage \
+  --sqliteStorage /data/sqlite-storage \
+  --initUser admin \
+  --initPassword '&lt;Quay 관리자 암호&gt;'</pre>
+<h3>4-2. CA 신뢰 · 로그인</h3><pre>cp /data/quay/quay-rootCA/rootCA.pem /etc/pki/ca-trust/source/anchors/quay-rootCA.pem
+update-ca-trust extract
+openssl x509 -in /data/quay/quay-rootCA/rootCA.pem -noout -subject -enddate
+mkdir -p /root/.docker
+podman login init-quay.ocp.jhw.local:8443 -u admin --authfile /root/.docker/config.json</pre>
+<span class="outl">결과 예시</span><pre class="out">subject=C=US, ST=VA, L=New York, O=Quay, OU=Division, CN=init-quay.ocp.jhw.local
+notAfter=Sep  3 15:32:11 2029 GMT
+Login Succeeded!</pre>
+<p class="small">Root CA 만료 2029-09-03, 서버 인증서(CN=quay-enterprise, SAN <code>init-quay.ocp.jhw.local</code>) 만료 2027-11-05.</p>
+<h3>4-3. disk → mirror</h3><pre>mkdir -p /data/oc-mirror-log /data/oc-mirror-cache
+nohup oc-mirror --v2 \
+  -c /data/4.22.22_Bundle/bundle-4.22.22/ocp-imageset-config.yaml \
+  --from file:///data/4.22.22_Bundle/image \
+  --cache-dir /data/oc-mirror-cache \
+  --authfile /root/.docker/config.json \
+  --parallel-images 8 --parallel-layers 10 --image-timeout 30m \
+  docker://init-quay.ocp.jhw.local:8443 &gt; /data/oc-mirror-log/d2m_$(date +%Y%m%d_%H%M).log 2&gt;&amp;1 &amp;
+tail -f /data/oc-mirror-log/d2m_*.log</pre>
+<span class="outl">결과 예시</span><pre class="out">[INFO] : 🔀 workflow mode: diskToMirror
+[INFO] : === Results ===
+[INFO] :  ✓  193 / 193 release images mirrored successfully
+[INFO] :  ✓  95 / 95 operator images mirrored successfully
+[INFO] : .../cluster-resources/idms-oc-mirror.yaml file created
+[INFO] : .../cluster-resources/itms-oc-mirror.yaml file created
+[INFO] : .../cluster-resources/cs-redhat-operator-index-v4-22.yaml file created
+[INFO] : .../cluster-resources/cc-redhat-operator-index-v4-22.yaml file created
+[INFO] : .../cluster-resources/signature-configmap.json file created
+[INFO] : .../cluster-resources/signature-configmap.yaml file created
+[INFO] : .../cluster-resources/updateService.yaml file created
+[INFO] : mirror time     : 1h9m14.779086201s</pre>
+<h3>4-4. cluster-resources 용도</h3>
+<p>경로 <code>/data/4.22.22_Bundle/image/working-dir/cluster-resources/</code>. 07장에서 적용.</p>
+<table><tr><th>파일</th><th>용도</th></tr>
+<tr><td><code>idms-oc-mirror.yaml</code></td><td>digest 이미지 → 내부 Quay. <code>idms-release-0</code>(release 2쌍) · <code>idms-operator-0</code>(openshift4 · openshift-update-service · migration-toolkit-virtualization · container-native-virtualization)</td></tr>
+<tr><td><code>itms-oc-mirror.yaml</code></td><td>tag 이미지 → 내부 Quay (ocp-release)</td></tr>
+<tr><td><code>cs-redhat-operator-index-v4-22.yaml</code></td><td>OLM v0 CatalogSource (OperatorHub · Subscription 설치용)</td></tr>
+<tr><td><code>cc-redhat-operator-index-v4-22.yaml</code></td><td>OLM v1 ClusterCatalog (같은 인덱스 이미지)</td></tr>
+<tr><td><code>signature-configmap.yaml</code></td><td>릴리스 서명 (오프라인 업그레이드 검증)</td></tr>
+<tr><td><code>updateService.yaml</code></td><td>OSUS 설치 후 사용</td></tr></table>
+<h3>4-5. 클러스터용 pull secret</h3>
+<p>폐쇄망 클러스터는 내부 Quay에서만 이미지를 받으므로 pull secret에 <b>Quay 계정만</b> 포함. Red Hat pull secret(console.redhat.com)은 인터넷 구간 미러링에만 사용.</p>
+<pre>mkdir -p /data/ocp4
+jq -c '{auths: {"init-quay.ocp.jhw.local:8443": .auths["init-quay.ocp.jhw.local:8443"]}}' \
+  /root/.docker/config.json &gt; /data/ocp4/pull-secret.json
+chmod 600 /data/ocp4/pull-secret.json
+jq -r '.auths | keys[]' /data/ocp4/pull-secret.json
+podman pull --authfile /data/ocp4/pull-secret.json \
+  init-quay.ocp.jhw.local:8443/openshift/release-images:4.22.22-x86_64 &gt;/dev/null &amp;&amp; echo PULL_OK</pre>
+<span class="outl">결과 예시</span><pre class="out">init-quay.ocp.jhw.local:8443
+PULL_OK</pre>
+</section>
+
+<!-- ================================================================== 05 -->
+<section id="config"><h2>05. install-config · manifests · ignition</h2>
+<h3>5-1. SSH 키</h3><pre>ssh-keygen -t ed25519 -N '' -C ocp.jhw.local -f ~/.ssh/id_ed25519
+cat ~/.ssh/id_ed25519.pub</pre>
+<h3>5-2. install-config.yaml</h3>
+<details open><summary>/data/ocp4/install-config.yaml (권한 600)</summary><pre>apiVersion: v1
+baseDomain: jhw.local
+metadata:
+  name: ocp
+compute:
+- name: worker
+  hyperthreading: Enabled
+  replicas: 0
+controlPlane:
+  name: master
+  hyperthreading: Enabled
+  replicas: 3
+networking:
+  networkType: OVNKubernetes
+  machineNetwork:
+  - cidr: 10.182.10.0/24
+  clusterNetwork:
+  - cidr: 10.128.0.0/14
+    hostPrefix: 23
+  serviceNetwork:
+  - 172.30.0.0/16
+platform:
+  none: {}
+fips: false
+pullSecret: '&lt;/data/ocp4/pull-secret.json 내용 한 줄&gt;'
+sshKey: '&lt;~/.ssh/id_ed25519.pub 내용&gt;'
+imageDigestSources:
+- mirrors:
+  - init-quay.ocp.jhw.local:8443/openshift/release
+  source: quay.io/openshift-release-dev/ocp-v4.0-art-dev
+- mirrors:
+  - init-quay.ocp.jhw.local:8443/openshift/release-images
+  source: quay.io/openshift-release-dev/ocp-release
+additionalTrustBundlePolicy: Always
+additionalTrustBundle: |
+  -----BEGIN CERTIFICATE-----
+  &lt;/data/quay/quay-rootCA/rootCA.pem 내용 (앞에 공백 2칸)&gt;
+  -----END CERTIFICATE-----</pre></details>
+<div class="note"><code>imageDigestSources</code>는 release 미러 2쌍만. Operator 미러는 설치 후 07장 IDMS로 추가. <code>openshift-install</code>이 install-config를 소비(삭제)하므로 원본은 <code>/data/ocp4</code>에 두고 사본 사용.</div>
+<h3>5-3. manifests · mastersSchedulable</h3><pre>mkdir -p /data/ocp4/install
+cp /data/ocp4/install-config.yaml /data/ocp4/install/
+openshift-install create manifests --dir /data/ocp4/install
+sed -i 's/mastersSchedulable: true/mastersSchedulable: false/' /data/ocp4/install/manifests/cluster-scheduler-02-config.yml
+grep mastersSchedulable /data/ocp4/install/manifests/cluster-scheduler-02-config.yml
+cp -a /data/ocp4/install /data/ocp4/install-manifests-backup</pre>
+<span class="outl">결과 예시</span><pre class="out">  mastersSchedulable: false</pre>
+<h3>5-4. chrony MachineConfig (butane)</h3><pre>mkdir -p /data/ocp4/butane &amp;&amp; cd /data/ocp4/butane
+for ROLE in master worker; do
+cat &gt; 99-${ROLE}-chrony.bu &lt;&lt;EOF
+variant: openshift
+version: 4.22.0
+metadata:
+  name: 99-${ROLE}-chrony
+  labels:
+    machineconfiguration.openshift.io/role: ${ROLE}
+storage:
+  files:
+  - path: /etc/chrony.conf
+    mode: 0644
+    overwrite: true
+    contents:
+      inline: |
+        server 10.182.10.10 iburst
+        driftfile /var/lib/chrony/drift
+        makestep 1.0 3
+        rtcsync
+        logdir /var/log/chrony
+EOF
+butane 99-${ROLE}-chrony.bu -o /data/ocp4/install/openshift/99-${ROLE}-chrony.yaml
+done
+ls -l /data/ocp4/install/openshift/*chrony*</pre>
+<h3>5-5. ignition 생성 · 배포</h3><pre>openshift-install create ignition-configs --dir /data/ocp4/install
+cp /data/ocp4/install/*.ign /var/www/html/ocp/
+chmod 644 /var/www/html/ocp/*.ign
+ls -l /var/www/html/ocp/
+curl -s -o /dev/null -w "%{http_code}\n" http://10.182.10.10:8080/ocp/bootstrap.ign
+echo 'export KUBECONFIG=/data/ocp4/install/auth/kubeconfig' &gt;&gt; ~/.bashrc
+chmod 600 /data/ocp4/install/auth/kubeconfig</pre>
+<span class="outl">결과 예시</span><pre class="out">-rw-r--r-- 1 root root 302354 bootstrap.ign
+-rw-r--r-- 1 root root   1715 master.ign
+-rw-r--r-- 1 root root   1715 worker.ign
+200</pre>
+<div class="danger">ignition 안의 인증서 유효기간 <b>24시간</b>. 생성 후 24시간 안에 bootstrap · master · worker 설치와 worker CSR 승인까지 완료. 초과 시 <code>install</code> 폴더 삭제 후 05장 다시 수행.</div>
+</section>
+
+<!-- ================================================================== 06 -->
+<section id="nodes"><h2>06. 노드 설치</h2>
+<h3>6-1. VM 생성 (virt-manager)</h3>
+<table><tr><th>항목</th><th>값</th></tr>
+<tr><td>ISO</td><td><code>/data02/rhcos-9.8.20261026-0-live-iso.x86_64.iso</code> (data02 풀)</td></tr>
+<tr><td>디스크</td><td>120G qcow2, data02 풀 → 노드 안에서 <code>/dev/sda</code></td></tr>
+<tr><td>CPU</td><td>host-passthrough (worker 중첩 가상화 필수)</td></tr>
+<tr><td>NIC</td><td>bootstrap · master: 관리망 ×2 / worker: 관리망 ×2 → svc-net ×2 → nas-net ×2 순서. 모델 통일</td></tr></table>
+<p class="small">추가 순서가 노드 안 NIC 이름 순서(ens3, ens6, ens7…)가 되므로 worker는 반드시 관리망 → SVC → NAS 순서.</p>
+<h3>6-2. live ISO에서 설치 (n.sh)</h3>
+<p>nmcli 수동 입력 오타 방지용 스크립트(별첨 B). 처음 NIC 하나에 임시 IP를 주고 스크립트를 받아 실행. 스크립트가 bond0(active-backup, NIC1+NIC2) 구성 · 사전 점검 · coreos-installer(<code>--copy-network</code>) · 재부팅까지 처리.</p>
+<pre><span class="c"># live ISO 콘솔 (core 사용자) — 노드별 IP만 변경</span>
+sudo ip a add 10.182.10.12/24 dev ens3; sudo ip l set ens3 up
+curl -O 10.182.10.10:8080/ocp/n.sh
+bash n.sh master01          <span class="c"># bootstrap | master01–03 | worker01–02</span></pre>
+<span class="outl">결과 예시 (계획 화면 → 점검)</span><pre class="out">================ OCP 4.22 node install ================
+ node      : master01.ocp.jhw.local
+ role/ign  : master  (http://10.182.10.10:8080/ocp/master.ign)
+ ip        : 10.182.10.12/24  gw 10.182.10.1  dns 10.182.10.10
+ network   : bond0 (active-backup) = ens3 + ens6
+ disk      : /dev/sda  120G   (ALL DATA WILL BE ERASED)
+=======================================================
+proceed? (y/N) y
+[1/3] network
+  [OK] connection up
+[2/3] checks
+  [OK] ip 10.182.10.12/24
+        Currently Active Slave: ens3
+        MII Status: up
+  [OK] ping bastion 10.182.10.10
+  [OK] dns api-int.ocp.jhw.local -&gt; 10.182.10.10
+  [OK] ignition http://10.182.10.10:8080/ocp/master.ign (200)
+[3/3] coreos-installer -&gt; /dev/sda
+  [OK] install complete</pre>
+<p class="small">bootstrap은 bond 없이 NIC1 단독(<code>mgmt</code> 연결). worker도 NIC1+NIC2만 bond0, NIC3–6은 그대로 두고 08장 NNCP로 구성. 설치 순서: bootstrap → master01–03 (동시 진행 가능) → bootstrap 완료 후 worker.</p>
+<h3>6-3. bootstrap 완료 확인</h3><pre>openshift-install wait-for bootstrap-complete --dir /data/ocp4/install --log-level=info
+oc get nodes
+oc get pods -n openshift-etcd -l app=etcd</pre>
+<span class="outl">결과 예시</span><pre class="out">INFO It is now safe to remove the bootstrap resources
+NAME                     STATUS   ROLES                  AGE   VERSION
+master01.ocp.jhw.local   Ready    control-plane,master   41m   v1.35.9
+master02.ocp.jhw.local   Ready    control-plane,master   33m   v1.35.9
+master03.ocp.jhw.local   Ready    control-plane,master   31m   v1.35.9</pre>
+<h3>6-4. bootstrap 제거</h3><pre>cp -p /etc/haproxy/haproxy.cfg /etc/haproxy/haproxy.cfg.bak-bootstrap
+sed -i '/server bootstrap/s/^/#/' /etc/haproxy/haproxy.cfg
+haproxy -c -f /etc/haproxy/haproxy.cfg &amp;&amp; systemctl reload haproxy
+grep bootstrap /etc/haproxy/haproxy.cfg
+<span class="c"># KVM 호스트: bootstrap VM 종료</span>
+virsh shutdown bootstrap.ocp.jhw.local</pre>
+<span class="outl">결과 예시</span><pre class="out">Configuration file is valid
+#    server bootstrap 10.182.10.11:6443 check
+#    server bootstrap 10.182.10.11:22623 check</pre>
+<h3>6-5. worker 설치 · CSR 승인</h3><pre><span class="c"># worker live ISO: bash n.sh worker01 / bash n.sh worker02</span>
+<span class="c"># CSR은 2회 (node-bootstrapper → kubelet-serving), worker 수만큼</span>
+oc get csr | grep Pending
+oc get csr --no-headers | awk '$NF=="Pending"{print $1}' | xargs -r oc adm certificate approve
+oc get nodes</pre>
+<span class="outl">결과 예시</span><pre class="out">certificatesigningrequest.certificates.k8s.io/csr-nlhsb approved
+certificatesigningrequest.certificates.k8s.io/csr-6mklw approved
+NAME                     STATUS   ROLES                  AGE     VERSION
+master01.ocp.jhw.local   Ready    control-plane,master   9h      v1.35.9
+master02.ocp.jhw.local   Ready    control-plane,master   9h      v1.35.9
+master03.ocp.jhw.local   Ready    control-plane,master   9h      v1.35.9
+worker01.ocp.jhw.local   Ready    worker                 5m24s   v1.35.9
+worker02.ocp.jhw.local   Ready    worker                 86s     v1.35.9</pre>
+<h3>6-6. 설치 완료</h3><pre>openshift-install wait-for install-complete --dir /data/ocp4/install
+oc get clusterversion
+oc get co | awk 'NR==1 || $3!="True" || $4!="False" || $5!="False"'</pre>
+<span class="outl">결과 예시</span><pre class="out">INFO All cluster operators have completed progressing
+INFO Install complete!
+INFO To access the cluster as the system:admin user when using 'oc', run
+INFO     export KUBECONFIG=/data/ocp4/install/auth/kubeconfig
+INFO Access the OpenShift web-console here: https://console-openshift-console.apps.ocp.jhw.local
+INFO Time elapsed: 6m47s
+NAME      VERSION   AVAILABLE   PROGRESSING   SINCE   STATUS
+version   4.22.22   True        False         9s      Cluster version is 4.22.22
+NAME   VERSION   AVAILABLE   PROGRESSING   DEGRADED   SINCE   MESSAGE      <span class="c">← 이상 오퍼레이터 없음 (34개 정상)</span></pre>
+<table><tr><th>웹 콘솔</th><td><code>https://console-openshift-console.apps.ocp.jhw.local</code> · 계정 <code>kubeadmin</code> (로그인 화면 kube:admin)</td></tr>
+<tr><th>암호</th><td><code>cat /data/ocp4/install/auth/kubeadmin-password</code> (23자, xxxxx-xxxxx-xxxxx-xxxxx)</td></tr></table>
+<p class="small">kubeadmin은 임시 관리자. 로그인 시 "OAuth 설정 업데이트" 배너 표시는 정상. 운영 기준은 htpasswd 등 IdP 추가 · cluster-admin 부여 · 로그인 확인 후 <code>oc delete secret kubeadmin -n kube-system</code>.</p>
+</section>
+
+<!-- ================================================================== 07 -->
+<section id="post"><h2>07. 설치 후 설정 · Operator</h2>
+<h3>7-1. 미러 리소스 적용</h3>
+<p>install-config에는 release 미러만 있어 Operator 이미지 · 카탈로그 위치를 모르는 상태. IDMS · ITMS · CatalogSource · ClusterCatalog · 서명 적용으로 내부 Quay 사용.</p>
+<pre>cd /data/4.22.22_Bundle/image/working-dir/cluster-resources/
+for f in idms-oc-mirror.yaml itms-oc-mirror.yaml cs-redhat-operator-index-v4-22.yaml \
+         cc-redhat-operator-index-v4-22.yaml signature-configmap.yaml; do
+  oc apply --dry-run=server -f $f
+done
+oc patch operatorhub cluster --type merge -p '{"spec":{"disableAllDefaultSources":true}}'
+for f in idms-oc-mirror.yaml itms-oc-mirror.yaml cs-redhat-operator-index-v4-22.yaml \
+         cc-redhat-operator-index-v4-22.yaml signature-configmap.yaml; do
+  oc apply -f $f
+done
+<span class="c"># OLM v1 기본 ClusterCatalog 3개 비활성 (인터넷 접근 오류 방지)</span>
+for c in openshift-certified-operators openshift-community-operators openshift-redhat-operators; do
+  oc patch clustercatalog $c --type merge -p '{"spec":{"availabilityMode":"Unavailable"}}'
+done</pre>
+<pre>oc get idms,itms
+oc get catalogsource,pods -n openshift-marketplace
+oc get packagemanifest
+oc get mcp -w            <span class="c"># IDMS · ITMS → 노드 5대 순차 재부팅, UPDATED True까지</span></pre>
+<span class="outl">결과 예시</span><pre class="out">imagedigestmirrorset.config.openshift.io/idms-operator-0       3m5s
+imagedigestmirrorset.config.openshift.io/idms-release-0        3m5s
+imagedigestmirrorset.config.openshift.io/image-digest-mirror   10h
+imagetagmirrorset.config.openshift.io/itms-release-0           3m4s
+cs-redhat-operator-index-v4-22-8xvgd    1/1     Running
+mtv-operator                        3m5s
+cincinnati-operator                 3m5s
+kubernetes-nmstate-operator         3m5s
+kubevirt-hyperconverged             3m5s
+NAME     CONFIG                     UPDATED   UPDATING   DEGRADED   MACHINECOUNT   READYMACHINECOUNT
+master   rendered-master-e2d10...   True      False      False      3              3
+worker   rendered-worker-77d04...   True      False      False      2              2</pre>
+<p class="small">Software Catalog에 같은 Operator가 두 번 보이는 이유: 같은 인덱스를 OLM v0(CatalogSource)과 v1(ClusterCatalog)로 모두 등록. 설치는 Source <code>cs-redhat-operator-index-v4-22</code>(OLM v0) 선택.</p>
+
+<h3>7-2. Operator 설치 (웹 콘솔)</h3>
+<p>에코시스템 → 소프트웨어 카탈로그. 네임스페이스는 <b>Operator 권장 네임스페이스</b> 사용, 설치 후 <b>인스턴스(CR) 생성</b>까지 수행.</p>
+<table><tr><th>순서</th><th>Operator</th><th>채널 · 버전</th><th>네임스페이스</th><th>인스턴스 (기본값)</th></tr>
+<tr><td>1</td><td>Kubernetes NMState Operator</td><td>stable · 4.22.0</td><td>openshift-nmstate (All namespaces)</td><td>NMState <code>nmstate</code></td></tr>
+<tr><td>2</td><td>OpenShift Virtualization</td><td>stable · v4.22.16</td><td>openshift-cnv</td><td>HyperConverged <code>kubevirt-hyperconverged</code></td></tr>
+<tr><td>3</td><td>Migration Toolkit for Virtualization</td><td>release-v2.12 · v2.12.10</td><td>openshift-mtv</td><td>ForkliftController <code>forklift-controller</code></td></tr>
+<tr><td>—</td><td>OpenShift Update Service</td><td>cincinnati-operator</td><td>openshift-update-service</td><td>업그레이드 실습 시</td></tr></table>
+<p class="small">인스턴스 생성 후 콘솔 상단 "Web console update is available" → Refresh 시 Virtualization · Migration 메뉴 표시. 마스터에 virt-api · virt-controller · nmstate-webhook 등 제어부 파드가 뜨는 것은 정상(HCO 기본 배치), VM(virt-launcher)은 worker에서만 실행.</p>
+<pre>oc get csv -A -l '!olm.copiedFrom' | grep -v packageserver
+oc get nmstate; oc get pods -n openshift-nmstate -o wide | grep handler
+oc get hyperconverged -n openshift-cnv -o jsonpath='{range .items[0].status.conditions[*]}{.type}={.status} {end}{"\n"}'
+oc get provider -n openshift-mtv
+oc get consoleplugin</pre>
+<span class="outl">결과 예시</span><pre class="out">openshift-cnv       kubevirt-hyperconverged-operator.v4.22.16         Succeeded
+openshift-mtv       mtv-operator.v2.12.10                             Succeeded
+openshift-nmstate   kubernetes-nmstate-operator.4.22.0-202611031655   Succeeded
+nmstate   Available   SuccessfullyDeployed
+nmstate-handler-*   Running   (노드 5대 각 1개)
+ReconcileComplete=True Available=True Progressing=False Degraded=False Upgradeable=True
+NAME   TYPE        STATUS   READY   CONNECTED   INVENTORY
+host   openshift   Ready    True    True        True
+forklift-console-plugin  kubevirt-plugin  monitoring-plugin  networking-console-plugin  nmstate-console-plugin</pre>
+<h3>7-3. 기본 부팅 이미지 자동 가져오기 끄기</h3>
+<p>OpenShift Virtualization이 CentOS Stream · Fedora 부팅 이미지를 quay.io에서 받으려다 <code>openshift-virtualization-os-images</code>의 poller 파드가 ImagePullBackOff 반복. 폐쇄망에서는 비활성.</p>
+<pre>oc patch hyperconverged kubevirt-hyperconverged -n openshift-cnv --type merge \
+  -p '{"spec":{"enableCommonBootImageImport":false}}'</pre>
+</section>
+
+<!-- ================================================================== 08 -->
+<section id="vmnet"><h2>08. VM 네트워크 (NNCP · NAD)</h2>
+<h3>8-1. 구성</h3><pre>ens3 + ens6  ── bond0 ── br-ex   (10.182.10.15/16, 관리망 · OVN)   ← 설치 시 구성, 변경 없음
+ens7 + ens8  ── bond1 (active-backup) ── br-svc   (IP 없음, SVC망 192.168.30.0/24 L2)
+ens9 + ens10 ── bond2 (active-backup) ── br-nas   (IP 없음, NAS망 192.168.40.0/24 L2)</pre>
+<table><tr><th>단계</th><th>리소스</th><th>역할</th></tr>
+<tr><td>NNCP</td><td>NodeNetworkConfigurationPolicy</td><td>노드 OS에 bond · bridge 생성 (NMState)</td></tr>
+<tr><td>NNCE</td><td>자동 생성</td><td>노드별 적용 결과 기록 (실패 시 원인 확인)</td></tr>
+<tr><td>NNS</td><td>자동 생성</td><td>노드 현재 네트워크 상태</td></tr>
+<tr><td>NAD</td><td>NetworkAttachmentDefinition</td><td>VM NIC를 노드 브리지에 붙이는 규칙 (Multus)</td></tr></table>
+<h3>8-2. 사전 확인</h3><pre>oc get nns worker01.ocp.jhw.local -o jsonpath='{range .status.currentState.interfaces[*]}{.name}{"\t"}{.type}{"\t"}{.state}{"\n"}{end}' | grep -E "ens|bond|br-"</pre>
+<span class="outl">결과 예시</span><pre class="out">bond0   bond          up
+br-ex   ovs-bridge    up
+br-ex   ovs-interface up
+ens10   ethernet      up
+ens3    ethernet      up
+ens6    ethernet      up
+ens7    ethernet      up
+ens8    ethernet      up
+ens9    ethernet      up</pre>
+<p class="small">적용 전 ens7–ens10에 192.168.30.x · 192.168.40.x 존재 — libvirt svc-net · nas-net DHCP가 준 주소(NetworkManager "Wired connection" 자동 프로파일). NNCP 적용 시 bond 포트로 바뀌며 제거.</p>
+<h3>8-3. NNCP</h3>
+<details open><summary>/data/ocp4/network/nncp-worker-bridges.yaml</summary><pre>apiVersion: nmstate.io/v1
+kind: NodeNetworkConfigurationPolicy
+metadata:
+  name: worker-svc-nas-bridges
+spec:
+  nodeSelector:
+    node-role.kubernetes.io/worker: ""
+  maxUnavailable: 1
+  desiredState:
+    interfaces:
+    - name: bond1
+      type: bond
+      state: up
+      ipv4: {enabled: false}
+      ipv6: {enabled: false}
+      link-aggregation:
+        mode: active-backup
+        options: {miimon: "100"}
+        port: [ens7, ens8]
+    - name: br-svc
+      type: linux-bridge
+      state: up
+      ipv4: {enabled: false}
+      ipv6: {enabled: false}
+      bridge:
+        options:
+          stp: {enabled: false}
+        port:
+        - name: bond1
+    - name: bond2
+      type: bond
+      state: up
+      ipv4: {enabled: false}
+      ipv6: {enabled: false}
+      link-aggregation:
+        mode: active-backup
+        options: {miimon: "100"}
+        port: [ens9, ens10]
+    - name: br-nas
+      type: linux-bridge
+      state: up
+      ipv4: {enabled: false}
+      ipv6: {enabled: false}
+      bridge:
+        options:
+          stp: {enabled: false}
+        port:
+        - name: bond2</pre></details>
+<pre>cd /data/ocp4/network
+oc apply --dry-run=server -f nncp-worker-bridges.yaml
+oc apply -f nncp-worker-bridges.yaml
+watch -n 3 'oc get nncp; echo; oc get nnce'</pre>
+<span class="outl">결과 예시</span><pre class="out">nodenetworkconfigurationpolicy.nmstate.io/worker-svc-nas-bridges created (server dry run)
+NAME                     STATUS      REASON
+worker-svc-nas-bridges   Available   SuccessfullyConfigured
+NAME                                            STATUS      STATUS AGE   REASON
+worker01.ocp.jhw.local.worker-svc-nas-bridges   Available   42s          SuccessfullyConfigured
+worker02.ocp.jhw.local.worker-svc-nas-bridges   Available   3m13s        SuccessfullyConfigured</pre>
+<h3>8-4. 노드 확인 · 전후 비교</h3>
+<details><summary>스냅샷 스크립트 net-snap.sh (적용 전 before · 적용 후 after)</summary><pre>#!/bin/bash
+# usage: bash net-snap.sh before|after
+TAG=${1:?before|after}
+OUT=/data/ocp4/network/snap/$TAG
+mkdir -p $OUT
+SSH="ssh -o StrictHostKeyChecking=no -o LogLevel=ERROR"
+oc get nncp,nnce -o wide                &gt; $OUT/nncp-nnce.txt 2&gt;&amp;1
+for n in worker01 worker02; do
+  oc get nns $n.ocp.jhw.local -o jsonpath='{range .status.currentState.interfaces[*]}{.name}{"\t"}{.type}{"\t"}{.state}{"\n"}{end}' \
+    | grep -E "ens|bond|br-" | sort      &gt; $OUT/nns-$n.txt
+done
+for ip in 15 16; do
+  h=worker0$((ip-14))
+  $SSH core@10.182.10.$ip "
+    echo '### ip -br a';            ip -br a | grep -E 'ens|bond|br-' | sort
+    echo '### ip route';            ip route
+    echo '### nmcli con (active)';  nmcli -t -f NAME,TYPE,DEVICE con show --active | sort
+    echo '### bridge link';         bridge link 2&gt;/dev/null | awk '{print \$2,\$NF,\$(NF-2)}' | sort
+    for b in bond0 bond1 bond2; do
+      [ -f /proc/net/bonding/\$b ] &amp;&amp; { echo \"### \$b\"; grep -E 'Mode|Currently Active|Slave Interface|MII Status' /proc/net/bonding/\$b; }
+    done
+  " &gt; $OUT/node-$h.txt 2&gt;&amp;1
+done
+echo "saved: $OUT"; ls -l $OUT</pre></details>
+<pre>bash /data/ocp4/network/net-snap.sh after
+cd /data/ocp4/network/snap
+diff -y --suppress-common-lines before/node-worker01.txt after/node-worker01.txt</pre>
+<span class="outl">결과 예시 (worker01 diff 요약)</span><pre class="out">                                         &gt; bond1            UP
+                                         &gt; bond2            UP
+ens10   UP  192.168.40.105/24 ...        | br-nas           UP
+                                         &gt; br-svc           UP
+ens7    UP  192.168.30.192/24 ...        | ens7             UP
+192.168.30.0/24 dev ens7 proto kernel .. &lt;
+192.168.40.0/24 dev ens9 proto kernel .. &lt;
+                                         &gt; ### bond1
+                                         &gt; Bonding Mode: fault-tolerance (active-backup)
+                                         &gt; Currently Active Slave: ens8
+                                         &gt; ### bond2
+                                         &gt; Currently Active Slave: ens9
+(bond0 · br-ex · default route 변화 없음)</pre>
+<table><tr><th>항목</th><th>적용 전</th><th>적용 후</th></tr>
+<tr><td>ens7–ens10 IP</td><td>192.168.30.x · 192.168.40.x (libvirt DHCP)</td><td>없음</td></tr>
+<tr><td>bond1 · bond2 · br-svc · br-nas</td><td>없음</td><td>UP · IP 없음 · forwarding</td></tr>
+<tr><td>br-ex · 기본 경로</td><td colspan="2">10.182.10.15 · default via 10.182.10.1 dev br-ex — 변화 없음</td></tr></table>
+
+<h3>8-5. NAD (default 네임스페이스 · VLAN 없음)</h3>
+<details open><summary>/data/ocp4/network/nad-svc-nas.yaml</summary><pre>apiVersion: k8s.cni.cncf.io/v1
+kind: NetworkAttachmentDefinition
+metadata:
+  name: br-svc
+  namespace: default
+  annotations:
+    k8s.v1.cni.cncf.io/resourceName: bridge.network.kubevirt.io/br-svc
+spec:
+  config: |-
+    {
+      "cniVersion": "0.3.1",
+      "name": "br-svc",
+      "type": "bridge",
+      "bridge": "br-svc",
+      "macspoofchk": true,
+      "ipam": {}
+    }
+---
+apiVersion: k8s.cni.cncf.io/v1
+kind: NetworkAttachmentDefinition
+metadata:
+  name: br-nas
+  namespace: default
+  annotations:
+    k8s.v1.cni.cncf.io/resourceName: bridge.network.kubevirt.io/br-nas
+spec:
+  config: |-
+    {
+      "cniVersion": "0.3.1",
+      "name": "br-nas",
+      "type": "bridge",
+      "bridge": "br-nas",
+      "macspoofchk": true,
+      "ipam": {}
+    }</pre></details>
+<pre>oc apply -f nad-svc-nas.yaml
+oc get net-attach-def -n default
+oc get node worker01.ocp.jhw.local -o jsonpath='{.status.allocatable}' | tr ',' '\n' | grep bridge</pre>
+<span class="outl">결과 예시</span><pre class="out">NAME     AGE
+br-nas   33s
+br-svc   33s
+{"bridge.network.kubevirt.io/br-nas":"1k"
+"bridge.network.kubevirt.io/br-svc":"1k"
+(master는 출력 없음 — VM이 브리지 있는 worker에만 배치)</pre>
+<p class="small"><code>resourceName</code> 주석은 bridge-marker(OpenShift Virtualization)가 표시한 노드 자원 기준 스케줄링용. <code>ipam: {}</code>라 IP는 VM 안에서 지정(SVC 192.168.30.2~, NAS 192.168.40.2~). default 네임스페이스 NAD는 다른 프로젝트 VM에서 <code>default/br-svc</code>로 사용.</p>
+</section>
+
+<!-- ================================================================== 09 -->
+<section id="mtv"><h2>09. MTV 이관 (vCenter → OCP)</h2>
+<p>사전 조건: 별첨 A의 StorageClass <code>truenas-iscsi</code>(default, StorageProfile Block · RWX) 준비 완료.</p>
+<h3>9-1. 원본 환경 · 경로 확인</h3>
+<table><tr><th>대상</th><th>주소</th><th>포트 · 용도</th></tr>
+<tr><td>vCenter 8.0</td><td><code>vcsa.localhost.test</code> (192.168.1.221)</td><td>443 · 인벤토리 · 스냅샷 · 인증</td></tr>
+<tr><td>ESXi</td><td>192.168.1.220 (vCenter에 IP로 등록, 인증서 CN=IP)</td><td>443 · 902(NBDSSL 디스크 전송)</td></tr></table>
+<pre><span class="c"># worker에서 실행 (ssh core@10.182.10.15)</span>
+for t in 192.168.1.221:443 192.168.1.220:443 192.168.1.220:902; do
+  timeout 3 bash -c "&lt;/dev/tcp/${t%:*}/${t#*:}" &amp;&amp; echo "$t OPEN" || echo "$t FAIL"
+done</pre>
+<span class="outl">결과 예시 (worker01 · worker02 동일)</span><pre class="out">192.168.1.221:443 OPEN
+192.168.1.220:443 OPEN
+192.168.1.220:902 OPEN</pre>
+<h3>9-2. vCenter FQDN DNS 등록 (Bastion)</h3>
+<p>MTV Provider URL은 vCenter 인증서 이름(FQDN)과 일치 필요. Bastion named에 <code>localhost.test</code> zone 추가.</p>
+<pre>cp -p /etc/named.rfc1912.zones /etc/named.rfc1912.zones.bak-vcsa
+cat &gt;&gt; /etc/named.rfc1912.zones &lt;&lt;'EOF'
+
+zone "localhost.test" IN {
+        type master;
+        file "/var/named/localhost.test.zone";
+        allow-update { none; };
+};
+EOF
+cat &gt; /var/named/localhost.test.zone &lt;&lt;'EOF'
+$TTL 1D
+@   IN SOA  ns.ocp.jhw.local. root.ocp.jhw.local. ( 2026111501 1D 1H 1W 3H )
+    IN NS   ns.ocp.jhw.local.
+vcsa        IN A  192.168.1.221
+EOF
+chown root:named /var/named/localhost.test.zone; chmod 640 /var/named/localhost.test.zone
+named-checkconf &amp;&amp; named-checkzone localhost.test /var/named/localhost.test.zone &amp;&amp; systemctl reload named
+dig +short vcsa.localhost.test @10.182.10.10
+ssh core@10.182.10.15 "getent hosts vcsa.localhost.test"</pre>
+<span class="outl">결과 예시</span><pre class="out">zone localhost.test/IN: loaded serial 2026111501
+OK
+192.168.1.221
+192.168.1.221   vcsa.localhost.test</pre>
+<p class="small">ESXi가 vCenter에 FQDN으로 등록된 환경이면 ESXi 이름도 같은 zone에 추가(MTV가 vCenter가 알려준 ESXi 이름으로 접속).</p>
+
+<h3>9-3. VDDK 이미지 (OpenVDDK · 랩 전용)</h3>
+<div class="danger"><b>OpenVDDK는 VMware(Broadcom) 정식 VDDK가 아닌 독립 구현체</b>(VixDiskLib 8.0.3 인터페이스 재구현, Apache 2.0, Broadcom과 무관). Red Hat 지원 대상 아님. <b>운영 환경은 Broadcom 정식 VDDK</b>(<code>VMware-vix-disklib-8.x.x.x86_64.tar.gz</code>)로 같은 절차 수행. 읽기 전용 · HotAdd/NBDSSL/NBD 지원, SAN 전송 없음 → OCP 파드가 읽으므로 NBDSSL(ESXi 902) 사용.</div>
+<p>MTV는 VDDK 이미지를 init 컨테이너로 실행해 <code>/vmware-vix-disklib-distrib</code>를 <code>/opt</code>로 복사한 뒤 virt-v2v · nbdkit이 <code>lib64/libvixDiskLib.so.8</code> 로드. 정식 VDDK와 같은 디렉토리 구조로 구성.</p>
+<pre>( umask 022
+  mkdir -p /data/vddk-build &amp;&amp; cd /data/vddk-build
+  tar xzf /data/4.22.22_Bundle/bundle-4.22.22/openvddk/openvddk-evalkit-0.7.4-94926da2f764.tar.gz
+  (cd openvddk-evalkit-0.7.4-94926da2f764 &amp;&amp; sha256sum -c SHA256SUMS)
+  mkdir -p vmware-vix-disklib-distrib/lib64
+  cp -a openvddk-evalkit-0.7.4-94926da2f764/lib/libvixDiskLib.so* vmware-vix-disklib-distrib/lib64/
+  cp -a openvddk-evalkit-0.7.4-94926da2f764/include vmware-vix-disklib-distrib/
+  chmod -R a+rX vmware-vix-disklib-distrib
+  cat &gt; Containerfile &lt;&lt;'EOF'
+FROM init-quay.ocp.jhw.local:8443/democratic-csi/busybox:1.37.0
+COPY vmware-vix-disklib-distrib /vmware-vix-disklib-distrib
+RUN mkdir -p /opt
+ENTRYPOINT ["cp", "-r", "/vmware-vix-disklib-distrib", "/opt"]
+EOF
+  IMG=init-quay.ocp.jhw.local:8443/mtv/vddk:openvddk-0.7.4-r2
+  podman build --no-cache --authfile /root/.docker/config.json -t $IMG .
+  podman push --authfile /root/.docker/config.json $IMG
+  podman run --rm --entrypoint ls $IMG -l /vmware-vix-disklib-distrib/lib64
+  podman run --rm --user 1000690000:0 --tmpfs /opt:rw,mode=1777 $IMG; echo "exit=$?" )</pre>
+<span class="outl">결과 예시</span><pre class="out">lrwxrwxrwx    1 root     root            18 libvixDiskLib.so -&gt; libvixDiskLib.so.8
+lrwxrwxrwx    1 root     root            22 libvixDiskLib.so.8 -&gt; libvixDiskLib.so.8.0.3
+-rwxr-xr-x    1 root     root      23732320 libvixDiskLib.so.8.0.3
+exit=0</pre>
+<div class="warn">마지막 임의 UID 실행 시험 필수. OpenShift 파드는 root가 아닌 임의 UID로 실행되므로 이미지 안 디렉토리가 700이면 init 컨테이너 <code>cp</code> 실패(exit 1) → Plan 조건 <code>VDDKInvalid</code>. 베이스 busybox는 별첨 A에서 반입한 이미지 재사용.</div>
+
+<h3>9-4. vCenter Provider 등록</h3>
+<p>Migration → Providers → Create Provider → VMware</p>
+<table><tr><th>항목</th><th>값</th></tr>
+<tr><td>Project · 이름</td><td><code>openshift-mtv</code> · <code>vcenter</code></td></tr>
+<tr><td>Endpoint type</td><td>vCenter</td></tr>
+<tr><td>URL</td><td><code>https://vcsa.localhost.test/sdk</code> (끝에 <code>/sdk</code>)</td></tr>
+<tr><td>VDDK 초기화 이미지</td><td><code>init-quay.ocp.jhw.local:8443/mtv/vddk:openvddk-0.7.4-r2</code> (이미지 주소 — <code>https://</code> · Quay 웹 경로 아님)</td></tr>
+<tr><td>VDDK 비동기 I/O 최적화</td><td>미사용</td></tr>
+<tr><td>계정</td><td><code>administrator@vsphere.local</code> 또는 이관 전용 계정 · <code>&lt;암호&gt;</code></td></tr>
+<tr><td>인증서</td><td>Fetch certificate from URL 또는 Skip(랩)</td></tr></table>
+<pre>oc get provider -n openshift-mtv
+oc get provider vcenter -n openshift-mtv -o jsonpath='{range .status.conditions[*]}{.type}={.status} {.message}{"\n"}{end}'</pre>
+<span class="outl">결과 예시</span><pre class="out">NAME      TYPE        STATUS   READY   CONNECTED   INVENTORY   URL
+host      openshift   Ready    True    True        True
+vcenter   vsphere     Ready    True    True        True        https://vcsa.localhost.test/sdk
+ConnectionInsecure=True TLS is susceptible to machine-in-the-middle attacks when certificate verification is skipped.
+ConnectionTestSucceeded=True Connection test, succeeded.
+InventoryCreated=True The inventory has been loaded.
+Ready=True The provider is ready.</pre>
+<span class="outl">결과 예시 (인벤토리)</span><pre class="out">hosts      : 192.168.1.220
+datastores : oc-nas (NFS, 1.86TB free) · datastore1 (VMFS, 150GB free)
+networks   : VM Network (Standard)
+vms        : mtvm  poweredOff  1 vCPU  2048MB  disk 50GiB  RHEL 8 (EFI)
+             vcsa  poweredOn   (vCenter 자체 — 이관 대상 제외)</pre>
+
+<h3>9-5. 대상 네임스페이스 · Map · Plan</h3>
+<pre>oc create namespace mtv-test</pre>
+<table><tr><th>항목</th><th>값</th></tr>
+<tr><td>Target namespace</td><td><code>mtv-test</code> — 스토리지 드라이버 등 시스템 네임스페이스 지정 금지</td></tr>
+<tr><td>NetworkMap</td><td><code>VM Network</code> → <code>default/br-svc</code> (또는 Pod networking)</td></tr>
+<tr><td>StorageMap</td><td><code>oc-nas</code> · <code>datastore1</code> → <code>truenas-iscsi</code></td></tr>
+<tr><td>VM</td><td><code>mtvm</code></td></tr>
+<tr><td>Migration type</td><td>Cold (원본 전원 꺼짐 · CBT 미사용)</td></tr></table>
+<p class="small">Plan 생성 시 대상 네임스페이스에 <code>vddk-validator-*</code> job 실행 → Complete 확인 후 Start. 경고 VMMissingGuestIPs · CBT 미사용 · USB 컨트롤러 · 빈 hostname은 Cold 이관에 영향 없음.</p>
+<pre>oc get jobs -n mtv-test | grep vddk                       <span class="c"># Complete</span>
+oc get plan -n openshift-mtv -o jsonpath='{range .items[*].status.migration.vms[*].pipeline[*]}{.name}={.phase} {.progress.completed}/{.progress.total}{"\n"}{end}'
+oc get pods,pvc -n mtv-test</pre>
+<h3>9-6. 이관 단계</h3>
+<table><tr><th>단계</th><th>내용</th></tr>
+<tr><td>Initialize</td><td>Plan 검증 · 원본 VM 정보 수집</td></tr>
+<tr><td>DiskAllocation</td><td>DataVolume · PVC 생성 (truenas-iscsi, Block, RWX, 50Gi). CDI가 <code>prime-*</code> PVC를 먼저 Bound</td></tr>
+<tr><td>ImageConversion</td><td>virt-v2v 파드: OpenVDDK(NBDSSL)로 원본 디스크 읽기 + KVM용 변환(virtio 드라이버 · 부트로더 · 네트워크)</td></tr>
+<tr><td>DiskTransferV2v</td><td>디스크 전송 진행률 (Cold + virt-v2v는 변환과 같은 파드에서 진행)</td></tr>
+<tr><td>VirtualMachineCreation</td><td>대상 네임스페이스에 VirtualMachine 생성</td></tr></table>
+<span class="outl">결과 예시 (진행 중)</span><pre class="out">VM mtvm phase=CopyDisksVirtV2V
+  Initialize=Completed
+  DiskAllocation=Completed 51200/51200
+  ImageConversion=Completed
+  DiskTransferV2v=Running 50688/51200
+  VirtualMachineCreation=Pending
+mtv-plan-01-mtvm-vm-1013-tjm2n   1/1   Running   worker02   (CPU 0.5core · 메모리 580Mi)
+TrueNAS zvol pvc-7786f5b6-... used 2.37 GiB   ← 50GiB 중 실제 데이터만 기록</pre>
+<span class="outl">결과 예시 (완료)</span><pre class="out">mtv-plan-01-mtvm: Ready Succeeded
+  Initialize=Completed  DiskAllocation=Completed  ImageConversion=Completed
+  DiskTransferV2v=Completed  VirtualMachineCreation=Completed
+NAME                              AGE   STATUS    READY
+virtualmachine.kubevirt.io/mtvm   20s   Stopped   False
+  runStrategy=Halted  cpu={"cores":1,"sockets":1}  mem=2Gi  firmware={"efi":{"secureBoot":true}}
+  disks=mtv-plan-01-mtvm-vm-1013-8pvcz (50Gi RWX Block, truenas-iscsi)
+  nets=[{"multus":{"networkName":"default/br-svc"},"name":"net-0"}]</pre>
+<p class="small">원본 NFS 데이터스토어는 사용 블록 정보를 주지 않아 50GiB 전체 읽기. 빈 영역은 기록 생략(TrueNAS 실사용 2.37GiB). Cold 50GiB 이관 소요 약 13분.</p>
+<h3>9-7. VM 기동</h3><pre>oc patch vm mtvm -n mtv-test --type merge -p '{"spec":{"runStrategy":"Always"}}'
+oc get vmi -n mtv-test -o wide</pre>
+<span class="outl">결과 예시</span><pre class="out">NAME   AGE    PHASE     IP   NODENAME                 READY
+mtvm   5m9s   Running        worker02.ocp.jhw.local   True</pre>
+<p class="small">콘솔: Virtualization → VirtualMachines → mtv-test / mtvm → Console. br-svc NIC IP는 VM 안에서 192.168.30.x 지정.</p>
+</section>
+
+<!-- ================================================================== 별첨 A -->
+<section id="csi" class="apx"><h2>별첨 A. CSI 스토리지 — TrueNAS + democratic-csi (iSCSI 동적 할당)</h2>
+<h3>A-0. 구성 · 운영 환경 대응</h3>
+<pre>KVM 호스트 /data02/JHW_ST
+ └─ TrueNAS SCALE 24.10.2.4 VM (10.182.10.20)   ← 가상 SAN 스토리지 (운영의 PowerMax 역할)
+      ├─ ZFS pool "ocp" (500G 데이터 디스크)
+      ├─ REST API                               ← 운영의 Unisphere API 역할
+      └─ iSCSI portal 10.182.10.20:3260
+
+OCP
+ ├─ democratic-csi Controller (Deployment)  → TrueNAS API: zvol · target · extent 생성/삭제/확장/스냅샷
+ ├─ democratic-csi Node (DaemonSet, worker) → iSCSI 로그인 · 블록 디바이스 전달
+ └─ StorageClass truenas-iscsi (default) + StorageProfile Block · RWX</pre>
+<table><tr><th>운영 (Dell EMC PowerMax FC)</th><th>랩</th></tr>
+<tr><td>PowerMax 스토리지 · Unisphere API</td><td>TrueNAS VM · REST API</td></tr>
+<tr><td>Dell CSI PowerMax (Dell CSM Operator, Certified 카탈로그)</td><td>democratic-csi (커뮤니티, Red Hat 지원 대상 아님)</td></tr>
+<tr><td>FC HBA · zoning · multipath</td><td>iSCSI(관리망) · multipath (MachineConfig 동일)</td></tr>
+<tr><td colspan="2">공통: PVC 생성 시 LUN 자동 생성, VM이 배치된 노드에만 동적 매핑, RWX Block으로 라이브 마이그레이션, PVC 삭제 시 LUN 자동 삭제</td></tr></table>
+<div class="note">운영 폐쇄망 imageset에는 <code>certified-operator-index</code>의 <code>dell-csm-operator</code>와 CSI 드라이버 · 사이드카 이미지 추가 필요. 이번 imageset은 <code>redhat-operator-index</code>만 포함.</div>
+
+<h3>A-1. TrueNAS VM 생성 (KVM 호스트)</h3>
+<p>24.10(Electric Eel) 선택 이유: democratic-csi가 쓰는 REST API(<code>/api/v2.0</code>) 호환. 25.04 이후는 REST API 축소 · 신규 API 전환 중.</p>
+<pre>cd /data02/JHW_ST
+V=24.10.2.4
+curl -LO https://download.sys.truenas.net/TrueNAS-SCALE-ElectricEel/$V/TrueNAS-SCALE-$V.iso
+curl -LO https://download.sys.truenas.net/TrueNAS-SCALE-ElectricEel/$V/TrueNAS-SCALE-$V.iso.sha256
+cat TrueNAS-SCALE-$V.iso.sha256; sha256sum TrueNAS-SCALE-$V.iso
+qemu-img create -f qcow2 /data02/JHW_ST/truenas-boot.qcow2   32G
+qemu-img create -f qcow2 /data02/JHW_ST/truenas-data01.qcow2 500G
+virt-install \
+  --name truenas.ocp.jhw.local \
+  --memory 8192 --vcpus 2 --cpu host-passthrough \
+  --os-variant debian12 \
+  --disk path=/data02/JHW_ST/truenas-boot.qcow2,bus=virtio,serial=TNBOOT01 \
+  --disk path=/data02/JHW_ST/truenas-data01.qcow2,bus=virtio,serial=TNDATA01 \
+  --cdrom /data02/JHW_ST/TrueNAS-SCALE-24.10.2.4.iso \
+  --network network="ocp.test.local_10.182.10.2~11.254",model=virtio \
+  --graphics vnc,listen=127.0.0.1 --noautoconsole</pre>
+<p class="small">디스크 <code>serial=</code> 지정으로 TrueNAS 디스크 식별. 설치 화면: Install/Upgrade → 부팅 디스크 <b>vda(32G, TNBOOT01)만</b> 선택 → <code>truenas_admin</code> 암호 → EFI 질문 No → 재부팅 · ISO 분리.</p>
+
+<h3>A-2. TrueNAS 네트워크 (콘솔 7 Linux Shell)</h3>
+<div class="warn">콘솔 메뉴로 IP 변경 시 저장만 하면 pending 상태, 60초 안에 checkin 없으면 자동 롤백. IP가 없는 상태에서는 게이트웨이 저장 시 <code>Gateway 10.182.10.1 is unreachable</code>. IP는 <code>aliases</code>(description 아님). 아래처럼 한 줄로 update → commit → checkin.</div>
+<pre>midclt call interface.update enp1s0 '{"ipv4_dhcp": false, "ipv6_auto": false, "aliases": [{"type": "INET", "address": "10.182.10.20", "netmask": 24}]}' &amp;&amp; midclt call interface.commit '{"checkin_timeout": 60}' &amp;&amp; midclt call interface.checkin &amp;&amp; echo IP-DONE
+midclt call network.configuration.update '{"hostname": "truenas", "domain": "ocp.jhw.local", "ipv4gateway": "10.182.10.1", "nameserver1": "10.182.10.10"}' &amp;&amp; echo GW-DONE
+midclt call interface.has_pending_changes      <span class="c"># false</span>
+ip -br a | grep enp1s0; ip route | grep default</pre>
+<span class="outl">결과 예시</span><pre class="out">IP-DONE
+GW-DONE
+false
+enp1s0   UP   10.182.10.20/24
+default via 10.182.10.1 dev enp1s0</pre>
+<p>Bastion DNS에 <code>truenas  IN A  10.182.10.20</code> · <code>20  IN PTR  truenas.ocp.jhw.local.</code> 추가(03장 zone, serial 증가 후 reload). 웹 UI는 관리망(10.182.10.x) PC에서 <code>https://10.182.10.20</code> 접속.</p>
+
+<h3>A-3. pool · dataset · iSCSI · API 키</h3>
+<table><tr><th>항목</th><th>값</th></tr>
+<tr><td>Pool</td><td><code>ocp</code> · TNDATA01(500G) · Stripe (랩, 중복 없음 경고 무시)</td></tr>
+<tr><td>Dataset (Generic)</td><td><code>ocp/k8s</code> → <code>ocp/k8s/iscsi</code> → <code>ocp/k8s/iscsi/v</code>(볼륨) · <code>ocp/k8s/iscsi/s</code>(스냅샷). <b>s는 v와 같은 단계</b>(v 하위 금지)</td></tr>
+<tr><td>API 키</td><td>사용자 아이콘 → API Keys → Add (<code>democratic-csi</code>, truenas_admin). Bastion <code>/root/ocnas.txt</code> 저장, 권한 600</td></tr></table>
+<pre><span class="c"># iSCSI (TrueNAS Linux Shell) — Wizard 사용 금지 (target · extent는 democratic-csi가 PVC마다 생성)</span>
+midclt call iscsi.portal.create '{"comment": "ocp", "listen": [{"ip": "10.182.10.20"}]}'
+midclt call iscsi.initiator.create '{"comment": "ocp-workers", "initiators": []}'     <span class="c"># 빈 목록 = 모든 initiator 허용</span>
+midclt call service.update iscsitarget '{"enable": true}'
+midclt call service.start iscsitarget</pre>
+<pre><span class="c"># Bastion에서 API · 설정 확인</span>
+K=$(cat /root/ocnas.txt); U=https://10.182.10.20/api/v2.0
+curl -sk -H "Authorization: Bearer $K" $U/system/info | jq -r .version
+curl -sk -H "Authorization: Bearer $K" "$U/pool/dataset?limit=0" | jq -r '.[].id'
+curl -sk -H "Authorization: Bearer $K" $U/iscsi/portal | jq -c '.[] | {id, listen}'
+curl -sk -H "Authorization: Bearer $K" $U/iscsi/initiator | jq -c '.[] | {id, comment, initiators}'</pre>
+<span class="outl">결과 예시</span><pre class="out">TrueNAS-SCALE-24.10.2.4
+ocp
+ocp/k8s
+ocp/k8s/iscsi
+ocp/k8s/iscsi/s
+ocp/k8s/iscsi/v
+{"id":1,"listen":[{"ip":"10.182.10.20","port":3260}]}
+{"id":2,"comment":"ocp-workers","initiators":[]}</pre>
+<div class="danger"><b>initiator group 고정용 target 필수.</b> TrueNAS 24.10은 마지막 target 삭제 시 그 target이 쓰던 initiator group도 함께 정리(감사 로그상 <code>iscsi.target.delete</code> 직후 그룹 소멸, 별도 delete 호출 없음). 삭제된 id는 재사용되지 않아 democratic-csi 설정 번호와 불일치 → PVC Pending(<code>"1 Initiator not found in database"</code>). LUN 없는 빈 target으로 그룹 고정.</div>
+<pre>K=$(cat /root/ocnas.txt)
+curl -sk -X POST -H "Authorization: Bearer $K" -H "Content-Type: application/json" \
+  https://10.182.10.20/api/v2.0/iscsi/target \
+  -d '{"name":"keep-ig2-do-not-delete","alias":"anchor for initiator group 2 (democratic-csi)","groups":[{"portal":1,"initiator":2,"authmethod":"NONE"}]}'</pre>
+<span class="outl">결과 예시</span><pre class="out">{"id": 3, "name": "keep-ig2-do-not-delete", "groups": [{"portal": 1, "initiator": 2, "auth": null, "authmethod": "NONE"}]}</pre>
+
+<h3>A-4. worker iSCSI · multipath (MachineConfig)</h3>
+<pre>mkdir -p /data/ocp4/storage &amp;&amp; cd /data/ocp4/storage
+cat &gt; 99-worker-iscsi-multipath.bu &lt;&lt;'EOF'
+variant: openshift
+version: 4.22.0
+metadata:
+  name: 99-worker-iscsi-multipath
+  labels:
+    machineconfiguration.openshift.io/role: worker
+storage:
+  files:
+  - path: /etc/multipath.conf
+    mode: 0644
+    overwrite: true
+    contents:
+      inline: |
+        defaults {
+          user_friendly_names yes
+          find_multipaths yes
+        }
+systemd:
+  units:
+  - name: iscsid.service
+    enabled: true
+  - name: multipathd.service
+    enabled: true
+EOF
+butane 99-worker-iscsi-multipath.bu -o 99-worker-iscsi-multipath.yaml
+oc apply -f 99-worker-iscsi-multipath.yaml
+oc get mcp worker -w           <span class="c"># worker 순차 재부팅</span>
+for i in 15 16; do ssh core@10.182.10.$i "hostname; systemctl is-active iscsid multipathd; cat /etc/iscsi/initiatorname.iscsi"; done</pre>
+<span class="outl">결과 예시</span><pre class="out">worker   rendered-worker-81739...   True   False   False   2   2   2   0
+worker01: iscsid=active multipathd=active InitiatorName=iqn.1994-05.com.redhat:5c83a41791b9
+worker02: iscsid=active multipathd=active InitiatorName=iqn.1994-05.com.redhat:c654844ae76</pre>
+<p class="small">재부팅 후 NNCP가 잠시 Progressing → Available로 복귀(브리지 상태 재확인).</p>
+
+<h3>A-5. CSI 이미지 반입</h3>
+<table><tr><th>이미지 (Helm 차트 democratic-csi-0.15.1 기준)</th><th>역할</th></tr>
+<tr><td><code>ghcr.io/democratic-csi/democratic-csi:v1.9.5</code></td><td>드라이버 본체 (차트 기본 <code>latest</code> 대신 고정)</td></tr>
+<tr><td><code>ghcr.io/democratic-csi/csi-grpc-proxy:v0.5.7</code></td><td>CSI 소켓 프록시</td></tr>
+<tr><td><code>registry.k8s.io/sig-storage/csi-provisioner:v3.6.0</code></td><td>PVC 감지 · 볼륨 생성 요청</td></tr>
+<tr><td><code>registry.k8s.io/sig-storage/csi-attacher:v4.4.0</code></td><td>노드 연결</td></tr>
+<tr><td><code>registry.k8s.io/sig-storage/csi-resizer:v1.9.0</code></td><td>확장</td></tr>
+<tr><td><code>registry.k8s.io/sig-storage/csi-snapshotter:v8.2.1</code></td><td>스냅샷</td></tr>
+<tr><td><code>registry.k8s.io/sig-storage/csi-node-driver-registrar:v2.9.0</code></td><td>노드 드라이버 등록</td></tr>
+<tr><td><code>docker.io/library/busybox:1.37.0</code></td><td>노드 정리 작업 (09장 VDDK 베이스로도 사용)</td></tr></table>
+<pre><span class="c"># 인터넷 가능 장비(KVM 호스트)에서 pull → save → Bastion 전송</span>
+mkdir -p /data02/JHW_ST/images &amp;&amp; cd /data02/JHW_ST/images
+<span class="c"># dcsi-images.txt: 위 표 8줄</span>
+for i in $(cat dcsi-images.txt); do podman pull --arch amd64 "$i" || echo "FAIL $i"; done
+podman save -m -o dcsi-images.tar $(cat dcsi-images.txt)
+scp dcsi-images.tar dcsi-images.txt root@10.182.10.10:/data/dcsi/
+
+<span class="c"># Bastion: load → 내부 Quay push</span>
+cd /data/dcsi &amp;&amp; podman load -i dcsi-images.tar
+Q=init-quay.ocp.jhw.local:8443/democratic-csi
+for i in $(cat dcsi-images.txt); do n=${i##*/}; podman tag "$i" "$Q/$n"; podman push --authfile /root/.docker/config.json "$Q/$n" || echo "FAIL $n"; done
+for i in $(cat dcsi-images.txt); do n=${i##*/}; skopeo inspect --authfile /root/.docker/config.json docker://$Q/$n &gt;/dev/null 2&gt;&amp;1 &amp;&amp; echo "OK   $n" || echo "MISS $n"; done</pre>
+<span class="outl">결과 예시</span><pre class="out">OK   democratic-csi:v1.9.5
+OK   csi-grpc-proxy:v0.5.7
+OK   csi-provisioner:v3.6.0
+OK   csi-attacher:v4.4.0
+OK   csi-resizer:v1.9.0
+OK   csi-snapshotter:v8.2.1
+OK   csi-node-driver-registrar:v2.9.0
+OK   busybox:1.37.0</pre>
+<p class="small">helm 바이너리(<code>helm-v3.16.4-linux-amd64.tar.gz</code>)와 차트(<code>democratic-csi-0.15.1.tgz</code>)도 KVM 호스트에서 받아 <code>/data/dcsi</code>로 전송 후 <code>install -m 755 linux-amd64/helm /usr/local/bin/helm</code>.</p>
+
+<h3>A-6. democratic-csi 설치</h3>
+<details open><summary>/data/dcsi/values-truenas-iscsi.yaml (API 키는 자리표시자)</summary><pre>csiDriver:
+  name: org.democratic-csi.iscsi
+
+storageClasses:
+- name: truenas-iscsi
+  defaultClass: true
+  reclaimPolicy: Delete
+  volumeBindingMode: Immediate
+  allowVolumeExpansion: true
+  parameters:
+    fsType: ext4
+    detachedVolumesFromSnapshots: "false"
+  mountOptions: []
+  secrets:
+    provisioner-secret:
+    controller-publish-secret:
+    node-stage-secret:
+    node-publish-secret:
+    controller-expand-secret:
+
+volumeSnapshotClasses:
+- name: truenas-iscsi
+  parameters:
+    detachedSnapshots: "true"
+
+controller:
+  rbac:
+    openshift:
+      privileged: true
+  driver:
+    image:
+      registry: init-quay.ocp.jhw.local:8443/democratic-csi/democratic-csi
+      tag: v1.9.5
+  externalAttacher:
+    image:
+      registry: init-quay.ocp.jhw.local:8443/democratic-csi/csi-attacher
+      tag: v4.4.0
+  externalProvisioner:
+    image:
+      registry: init-quay.ocp.jhw.local:8443/democratic-csi/csi-provisioner
+      tag: v3.6.0
+  externalResizer:
+    image:
+      registry: init-quay.ocp.jhw.local:8443/democratic-csi/csi-resizer
+      tag: v1.9.0
+  externalSnapshotter:
+    image:
+      registry: init-quay.ocp.jhw.local:8443/democratic-csi/csi-snapshotter
+      tag: v8.2.1
+
+node:
+  rbac:
+    openshift:
+      privileged: true
+  driver:
+    localtimeHostPath: false
+    image:
+      registry: init-quay.ocp.jhw.local:8443/democratic-csi/democratic-csi
+      tag: v1.9.5
+  driverRegistrar:
+    image:
+      registry: init-quay.ocp.jhw.local:8443/democratic-csi/csi-node-driver-registrar
+      tag: v2.9.0
+  cleanup:
+    image:
+      registry: init-quay.ocp.jhw.local:8443/democratic-csi/busybox
+      tag: 1.37.0
+
+csiProxy:
+  image:
+    registry: init-quay.ocp.jhw.local:8443/democratic-csi/csi-grpc-proxy
+    tag: v0.5.7
+
+driver:
+  config:
+    driver: freenas-api-iscsi
+    instance_id:
+    httpConnection:
+      protocol: https
+      host: 10.182.10.20
+      port: 443
+      apiKey: __API_KEY__
+      allowInsecure: true
+      apiVersion: 2
+    zfs:
+      datasetProperties:
+        "org.freenas:description": "{{ parameters.[csi.storage.k8s.io/pvc/namespace] }}/{{ parameters.[csi.storage.k8s.io/pvc/name] }}"
+      datasetParentName: ocp/k8s/iscsi/v
+      detachedSnapshotsDatasetParentName: ocp/k8s/iscsi/s
+      zvolEnableReservation: false
+    iscsi:
+      targetPortal: "10.182.10.20:3260"
+      targetPortals: []
+      interface:
+      namePrefix: csi-
+      nameSuffix: "-ocp"
+      targetGroups:
+      - targetGroupPortalGroup: 1
+        targetGroupInitiatorGroup: 2          <span class="c"># TrueNAS initiator group 실제 id</span>
+        targetGroupAuthType: None
+        targetGroupAuthGroup:
+      extentInsecureTpc: true
+      extentXenCompat: false
+      extentDisablePhysicalBlocksize: true
+      extentBlocksize: 512
+      extentRpm: "SSD"
+      extentAvailThreshold: 0</pre></details>
+<pre><span class="c"># API 키 포함 파일만 600 — umask는 괄호 안에서만 적용 (셸 전체 umask 077 금지, 09장 VDDK 권한 오류 원인)</span>
+( umask 077
+  sed "s|__API_KEY__|$(cat /root/ocnas.txt)|" /data/dcsi/values-truenas-iscsi.yaml &gt; /root/.values-dcsi-rendered.yaml
+  helm template truenas-iscsi /data/dcsi/democratic-csi-0.15.1.tgz -n democratic-csi \
+    -f /root/.values-dcsi-rendered.yaml &gt; /root/.dcsi-manifest.yaml
+  rm -f /root/.values-dcsi-rendered.yaml )
+ls -l /root/.dcsi-manifest.yaml
+grep -E "^kind:" /root/.dcsi-manifest.yaml | sort | uniq -c
+
+oc create namespace democratic-csi
+oc label namespace democratic-csi pod-security.kubernetes.io/enforce=privileged \
+  pod-security.kubernetes.io/audit=privileged pod-security.kubernetes.io/warn=privileged --overwrite
+oc apply --dry-run=server -n democratic-csi -f /root/.dcsi-manifest.yaml
+oc apply -n democratic-csi -f /root/.dcsi-manifest.yaml
+<span class="c"># 설정 변경 후 재적용 시: oc rollout restart deployment -n democratic-csi</span></pre>
+<span class="outl">결과 예시</span><pre class="out">-rw------- 1 root root 25502 /root/.dcsi-manifest.yaml
+      2 kind: ClusterRole
+      2 kind: ClusterRoleBinding
+      1 kind: ConfigMap
+      1 kind: CSIDriver
+      1 kind: DaemonSet
+      1 kind: Deployment
+      6 kind: Secret          ← driver-config(연결 정보 · API 키) 1 + StorageClass 참조용 빈 Secret 5
+      2 kind: ServiceAccount
+      1 kind: StorageClass
+      1 kind: VolumeSnapshotClass</pre>
+<pre>oc get pods -n democratic-csi -o wide
+oc get csidriver; oc get sc; oc get volumesnapshotclass
+oc get csinode -o custom-columns=NODE:.metadata.name,DRIVERS:.spec.drivers[*].name</pre>
+<span class="outl">결과 예시</span><pre class="out">truenas-iscsi-democratic-csi-controller-...   6/6   Running   worker02
+truenas-iscsi-democratic-csi-node-...         4/4   Running   worker01
+truenas-iscsi-democratic-csi-node-...         4/4   Running   worker02
+org.democratic-csi.iscsi   true   true   false   &lt;unset&gt;   false   Persistent
+truenas-iscsi (default)   org.democratic-csi.iscsi   Delete   Immediate   true
+truenas-iscsi   org.democratic-csi.iscsi   Delete
+master01–03   &lt;none&gt;
+worker01–02   org.democratic-csi.iscsi
+controller log: FreeNASApiDriver method: Probe response: {"ready":{"value":true}}</pre>
+
+<h3>A-7. StorageProfile (CDI 기본 규격)</h3>
+<p>OpenShift Virtualization(CDI)은 VM 디스크 PVC의 volumeMode · accessModes를 StorageProfile에서 가져옴. democratic-csi는 CDI가 모르는 드라이버라 기본값이 비어 있음 → MTV · VM 생성 전 지정 필수.</p>
+<pre>oc patch storageprofile truenas-iscsi --type merge -p '{
+  "spec": {
+    "claimPropertySets": [{"accessModes": ["ReadWriteMany"], "volumeMode": "Block"}],
+    "cloneStrategy": "csi-clone"
+  }
+}'
+oc get storageprofile truenas-iscsi -o jsonpath='{.status.claimPropertySets}{"\n"}{.status.cloneStrategy}{"\n"}'</pre>
+<span class="outl">결과 예시</span><pre class="out">[{"accessModes":["ReadWriteMany"],"volumeMode":"Block"}]
+csi-clone</pre>
+<table><tr><th>값</th><th>이유</th></tr>
+<tr><td>Block + ReadWriteMany</td><td>운영(PowerMax)과 같은 형태. LUN을 VM 디스크로 직접 사용, worker 2대 동시 연결 → 라이브 마이그레이션</td></tr>
+<tr><td>csi-clone</td><td>VM 디스크 복제를 스토리지에서 직접 수행 (기본 snapshot 방식보다 단계 적음)</td></tr></table>
+
+<h3>A-8. 동적 할당 시험 (생성 → 연결 → 삭제)</h3>
+<pre>cat &gt; /data/dcsi/test-block-pvc.yaml &lt;&lt;'EOF'
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: test-block-pvc
+  namespace: default
+spec:
+  storageClassName: truenas-iscsi
+  volumeMode: Block
+  accessModes: [ReadWriteMany]
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-block-pod
+  namespace: default
+spec:
+  containers:
+  - name: test
+    image: init-quay.ocp.jhw.local:8443/democratic-csi/busybox:1.37.0
+    command: ["sh", "-c", "ls -l /dev/xvda &amp;&amp; sleep 3600"]
+    volumeDevices:
+    - name: data
+      devicePath: /dev/xvda
+  volumes:
+  - name: data
+    persistentVolumeClaim:
+      claimName: test-block-pvc
+EOF
+oc apply -f /data/dcsi/test-block-pvc.yaml
+oc get pvc test-block-pvc -n default
+oc get pod test-block-pod -n default -o wide
+oc logs test-block-pod -n default
+ssh core@10.182.10.16 "sudo iscsiadm -m session; lsblk -o NAME,SIZE,TYPE,TRAN | grep iscsi"</pre>
+<span class="outl">결과 예시 (생성)</span><pre class="out">test-block-pvc   Bound    pvc-0c02d66e-9dc5-4911-b271-41bc58ecd166   5Gi   RWX   truenas-iscsi
+test-block-pod   1/1     Running   worker02.ocp.jhw.local
+brw-rw-rw-    1 root     disk        8,  16 /dev/xvda
+tcp: [1] 10.182.10.20:3260,1 iqn.2005-10.org.freenas.ctl:csi-pvc-0c02d66e-...-ocp (non-flash)
+sdb        5G disk iscsi
+TrueNAS zvol    : ocp/k8s/iscsi/v/pvc-0c02d66e-...  5 GiB
+TrueNAS target  : csi-pvc-0c02d66e-...-ocp
+TrueNAS extent  : csi-pvc-0c02d66e-...-ocp → zvol/ocp/k8s/iscsi/v/pvc-0c02d66e-...</pre>
+<pre>oc delete -f /data/dcsi/test-block-pvc.yaml</pre>
+<span class="outl">결과 예시 (삭제 — reclaimPolicy Delete)</span><pre class="out">pvc/pv           : cleaned
+TrueNAS zvols    : none
+TrueNAS targets  : none          ← 고정용 target(A-3) 생성 전 기준
+worker02 session : iscsiadm: No active sessions.</pre>
+<p class="small">경로가 1개(포털 1개)라 <code>multipath -ll</code> 출력 없음(<code>find_multipaths yes</code>). 운영 FC는 경로 2–4개 → <code>mpathX</code>. 랩에서 시험하려면 TrueNAS NIC · 포털 추가.</p>
+</section>
+
+<!-- ================================================================== 별첨 B -->
+<section id="nsh" class="apx"><h2>별첨 B. 노드 설치 스크립트 n.sh</h2>
+<p>Bastion <code>/root/ocp-node-install.sh</code> → <code>/var/www/html/ocp/n.sh</code>(644) 복사. live ISO에서 <code>curl -O 10.182.10.10:8080/ocp/n.sh; bash n.sh &lt;node&gt;</code>. 옵션: <code>DISK=/dev/vda</code>, <code>NICS="ens3 ens6"</code>.</p>
+<details><summary>n.sh 전체</summary><pre>#!/bin/bash
+# OCP 4.22 (ocp.jhw.local) RHCOS node install script
+# usage (live ISO console):  bash n.sh &lt;node&gt;
+#   node: bootstrap | master01 | master02 | master03 | worker01 | worker02
+# options (env): DISK=/dev/sda (default)  NICS="ens3 ens4" (default: first two NICs in PCI order)
+set -u
+
+NODE=${1:-}
+case "$NODE" in
+  bootstrap) IP=10.182.10.11; ROLE=bootstrap ;;
+  master01)  IP=10.182.10.12; ROLE=master ;;
+  master02)  IP=10.182.10.13; ROLE=master ;;
+  master03)  IP=10.182.10.14; ROLE=master ;;
+  worker01)  IP=10.182.10.15; ROLE=worker ;;
+  worker02)  IP=10.182.10.16; ROLE=worker ;;
+  *) echo "usage: bash $0 &lt;bootstrap|master01|master02|master03|worker01|worker02&gt;"; exit 1 ;;
+esac
+
+# re-run as root
+if [ "$EUID" -ne 0 ]; then exec sudo DISK="${DISK:-}" NICS="${NICS:-}" bash "$0" "$@"; fi
+
+DISK=${DISK:-/dev/sda}
+GW=10.182.10.1
+DNS=10.182.10.10
+DOMAIN=ocp.jhw.local
+IGN=http://10.182.10.10:8080/ocp/${ROLE}.ign
+
+ok()   { echo -e "  [\e[32mOK\e[0m] $*"; }
+fail() { echo -e "  [\e[31mFAIL\e[0m] $*"; exit 1; }
+
+# NICs in PCI order (NIC1, NIC2 = management)
+if [ -n "${NICS:-}" ]; then
+  read -r -a ETH &lt;&lt;&lt; "$NICS"
+else
+  mapfile -t ETH &lt; &lt;(for d in /sys/class/net/*; do
+      [ -e "$d/device" ] &amp;&amp; [ ! -e "$d/bonding" ] &amp;&amp; echo "$(readlink -f "$d/device") $(basename "$d")"
+    done | sort | awk '{print $2}')
+fi
+
+if [ "$ROLE" = bootstrap ]; then MGMT=("${ETH[0]}"); else MGMT=("${ETH[0]}" "${ETH[1]:-}"); fi
+for n in "${MGMT[@]}"; do [ -n "$n" ] || fail "management NIC not found (NICs: ${ETH[*]})"; done
+[ -b "$DISK" ] || fail "disk $DISK not found (check lsblk, run: DISK=/dev/vda bash n.sh $NODE)"
+
+echo "================ OCP 4.22 node install ================"
+echo " node      : $NODE.$DOMAIN"
+echo " role/ign  : $ROLE  ($IGN)"
+echo " ip        : $IP/24  gw $GW  dns $DNS"
+if [ "$ROLE" = bootstrap ]; then echo " network   : ${MGMT[0]} (no bond)"; else echo " network   : bond0 (active-backup) = ${MGMT[0]} + ${MGMT[1]}"; fi
+echo " all NICs  :"; for n in "${ETH[@]}"; do echo "     $n  $(cat /sys/class/net/$n/address)"; done
+echo " disk      : $DISK  $(lsblk -dno SIZE "$DISK")   (ALL DATA WILL BE ERASED)"
+echo "======================================================="
+read -r -p "proceed? (y/N) " a; [ "$a" = y ] || { echo "canceled"; exit 1; }
+
+# 1. network
+echo "[1/3] network"
+for c in $(nmcli -t -f UUID,TYPE con show | awk -F: '$2!="loopback"{print $1}'); do nmcli con del "$c" &gt;/dev/null 2&gt;&amp;1; done
+for n in "${ETH[@]}"; do ip addr flush dev "$n" 2&gt;/dev/null; done
+
+if [ "$ROLE" = bootstrap ]; then
+  nmcli con add type ethernet ifname "${MGMT[0]}" con-name mgmt \
+    ipv4.method manual ipv4.addresses "$IP/24" ipv4.gateway "$GW" \
+    ipv4.dns "$DNS" ipv4.dns-search "$DOMAIN" ipv6.method disabled &gt;/dev/null || fail "nmcli add mgmt"
+  nmcli con up mgmt &gt;/dev/null || fail "nmcli up mgmt"
+else
+  nmcli con add type bond ifname bond0 con-name bond0 \
+    bond.options "mode=active-backup,miimon=100" \
+    ipv4.method manual ipv4.addresses "$IP/24" ipv4.gateway "$GW" \
+    ipv4.dns "$DNS" ipv4.dns-search "$DOMAIN" ipv6.method disabled &gt;/dev/null || fail "nmcli add bond0"
+  for n in "${MGMT[@]}"; do
+    nmcli con add type ethernet ifname "$n" master bond0 con-name "bond0-$n" &gt;/dev/null || fail "nmcli add bond0-$n"
+  done
+  nmcli con up bond0 &gt;/dev/null || fail "nmcli up bond0"
+fi
+ok "connection up"; sleep 3
+
+# 2. checks
+echo "[2/3] checks"
+ip -br -4 addr | grep -q "$IP/24" &amp;&amp; ok "ip $IP/24" || fail "ip not assigned"
+[ "$ROLE" != bootstrap ] &amp;&amp; grep -E "Currently Active Slave|MII Status" /proc/net/bonding/bond0 | head -2 | sed 's/^/        /'
+ping -c2 -W2 "$DNS" &gt;/dev/null &amp;&amp; ok "ping bastion $DNS" || fail "ping bastion $DNS"
+getent hosts "api-int.$DOMAIN" &gt;/dev/null &amp;&amp; ok "dns api-int.$DOMAIN -&gt; $(getent hosts api-int.$DOMAIN | awk '{print $1}')" || fail "dns api-int.$DOMAIN"
+code=$(curl -s -o /dev/null -w "%{http_code}" "$IGN"); [ "$code" = 200 ] &amp;&amp; ok "ignition $IGN (200)" || fail "ignition http $code"
+
+# 3. install
+echo "[3/3] coreos-installer -&gt; $DISK"
+coreos-installer install "$DISK" --ignition-url "$IGN" --insecure-ignition --copy-network || fail "coreos-installer"
+ok "install complete"
+echo "reboot in 10s (Ctrl+C to cancel)"; sleep 10; reboot</pre></details>
+<table><tr><th>단계</th><th>처리 내용</th></tr>
+<tr><td>계획 화면</td><td>노드 · ign · IP · bond 구성 NIC · 전체 NIC MAC · 디스크 크기 표시 후 y 확인</td></tr>
+<tr><td>[1/3] network</td><td>기존 연결 전부 삭제 · IP flush → bootstrap은 ethernet <code>mgmt</code>, 나머지는 bond0 active-backup(miimon 100). <code>ipv4.method manual</code> 포함</td></tr>
+<tr><td>[2/3] checks</td><td>IP · bond 상태 · Bastion ping · <code>api-int</code> DNS · ignition HTTP 200, 실패 시 중단</td></tr>
+<tr><td>[3/3] install</td><td><code>coreos-installer --copy-network</code>(live ISO 네트워크 설정을 설치 디스크로 복사) → 10초 후 재부팅</td></tr></table>
+</section>
+
+<!-- ================================================================== 부록 C -->
+<section id="trouble" class="apx"><h2>부록 C. 문제 해결 (이번 실습 발생 사례)</h2>
+<table><tr><th>증상</th><th>원인</th><th>조치</th></tr>
+<tr><td>KVM 호스트 <code>/ISO</code> ls · scp 응답 없음, virt-manager "No active connection"</td><td>NFS 서버(192.168.1.9) 응답 없음 → hard mount 프로세스 D 상태</td><td><code>umount -f -l /ISO</code> → NFS 복구 후 <code>mount /ISO</code> · libvirt pool-start. ISO는 로컬 <code>/data02</code>로 복사해 사용</td></tr>
+<tr><td>live ISO nmcli 후 "IP configuration could not be reserved"</td><td><code>ipv4.method manual</code> 누락 → DHCP 대기 · 중복 연결 생성</td><td>잘못된 연결 <code>nmcli con del &lt;UUID&gt;</code> 후 manual로 재생성. 이후 n.sh 사용</td></tr>
+<tr><td>coreos-installer "Permission denied (os error 13)"</td><td>core 사용자로 실행</td><td><code>sudo</code> (n.sh는 자동 sudo 재실행)</td></tr>
+<tr><td>NIC 이름 enp1s0 없음 · 디스크 vda 없음</td><td>i440fx · e1000 · IDE/SATA 디스크 VM</td><td>NIC <code>ens3/ens6/…</code>, 디스크 <code>/dev/sda</code> 확인 후 사용</td></tr>
+<tr><td>worker의 SVC · NAS NIC에 192.168.30/40.x 자동 할당</td><td>libvirt svc-net · nas-net DHCP + NetworkManager 자동 프로파일</td><td>기본 경로는 bond0만이라 설치 영향 없음. NNCP 적용 시 제거. libvirt DHCP 해제 권장</td></tr>
+<tr><td>Software Catalog에 같은 Operator 2개</td><td>같은 인덱스를 OLM v0 · v1로 모두 등록</td><td>Source <code>cs-redhat-operator-index-v4-22</code> 선택</td></tr>
+<tr><td><code>oc get csv -A</code>에 NMState가 모든 네임스페이스에 표시</td><td>All namespaces 모드의 copied CSV</td><td>정상. 원본은 openshift-nmstate 1개</td></tr>
+<tr><td>Virtualization · Migration 메뉴 없음</td><td>인스턴스(HyperConverged · ForkliftController) 미생성 또는 MTV 미설치</td><td>인스턴스 생성 → 콘솔 Refresh. Migration → Storage migrations는 OpenShift Virtualization 메뉴</td></tr>
+<tr><td>os-images poller ImagePullBackOff</td><td>기본 부팅 이미지 quay.io 자동 가져오기</td><td><code>enableCommonBootImageImport: false</code></td></tr>
+<tr><td>kubeadmin 로그인 실패</td><td>사용자명 오타(kubadmin) · 한글 입력 상태 · 복사 공백</td><td><code>kubeadmin</code> · 23자 확인</td></tr>
+<tr><td>TrueNAS IP 설정 후 잠시 뒤 통신 끊김, 게이트웨이 "unreachable"</td><td>commit 후 checkin 미수행 → 60초 후 자동 롤백 · IP를 description에 입력</td><td>A-2 한 줄 명령(update → commit → checkin)</td></tr>
+<tr><td>democratic-csi 기동 실패 위험</td><td>스냅샷 dataset을 <code>v</code> 하위에 생성(<code>ocp/k8s/iscsi/v/s</code>)</td><td><code>zfs destroy ocp/k8s/iscsi/v/s; zfs create ocp/k8s/iscsi/s</code></td></tr>
+<tr><td>PVC Pending, <code>"1 Initiator not found in database"</code></td><td>마지막 target 삭제 시 TrueNAS가 initiator group 자동 정리 → 설정의 그룹 번호 불일치</td><td>그룹 재생성(id 2) → values <code>targetGroupInitiatorGroup: 2</code> → 렌더링 · apply · <code>rollout restart</code> → 고정용 target 생성(A-3)</td></tr>
+<tr><td>Plan 조건 <code>VDDKInvalid</code> (NotSet), validator job Failed, init 컨테이너 exit 1</td><td>셸에 <code>umask 077</code>이 남은 상태로 <code>lib64</code> 생성 → 이미지 안 700 → 임의 UID 파드가 복사 불가</td><td><code>umask 022</code> · <code>chmod -R a+rX</code> → 새 태그(-r2)로 재빌드 · Provider 이미지 변경 · 실패 job 삭제 · Plan 재생성. 같은 태그 재사용 시 노드 캐시 이미지 사용 위험</td></tr>
+<tr><td>Provider VDDK 칸 "VDDK image is invalid"</td><td>Quay 웹 주소(<code>https://…/repository/…?tab=tags</code>) 입력</td><td>이미지 주소 <code>init-quay.ocp.jhw.local:8443/mtv/vddk:&lt;tag&gt;</code></td></tr>
+<tr><td>validator job · VM이 democratic-csi 네임스페이스에 생성</td><td>Plan Target namespace 잘못 선택</td><td>Plan 삭제 → <code>mtv-test</code>로 재생성 · 남은 job 삭제</td></tr>
+<tr><td>vcsa FQDN SERVFAIL</td><td>zone 선언만 추가, zone 파일 미생성 → 루트 DNS 질의 실패</td><td>zone 파일 생성 · 권한 <code>root:named 640</code> · reload</td></tr>
+<tr><td>Bastion에서 외부 이미지 pull 불가</td><td>Bastion named가 외부 이름 해석 불가</td><td>인터넷 가능 장비에서 pull → save → scp → load (운영 폐쇄망 방식). 임시 resolv.conf 변경은 랩 한정</td></tr>
+<tr><td>MachineConfig 적용 직후 NNCP Progressing</td><td>재부팅 후 NMState 상태 재확인</td><td>잠시 후 Available 복귀 확인</td></tr></table>
+</section>
+
+<footer class="small" style="padding:10px 4px">근거: 2026-11-14~15 aon-kvm 실습 기록(Bastion · KVM · TrueNAS 실제 설정 · 명령 출력), OCP_Install_Guide_v0.3(장 구성), SGIS_OCP_BuildDesign_v1.9(운영 스토리지 Dell EMC PowerMax FC). 비밀값(Quay 암호 · pull secret · kubeadmin 암호 · TrueNAS API 키 · vCenter 암호)은 문서 미포함.</footer>
+</main></body></html>
